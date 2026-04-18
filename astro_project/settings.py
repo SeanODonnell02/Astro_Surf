@@ -157,7 +157,7 @@ if config.is_valid_platform():
     ALLOWED_HOSTS.append('.platformsh.site')
 
     if hasattr(config, 'appDir'):
-        STATIC_ROOT = Path(config.appDir) / 'static'
+        STATIC_ROOT = Path(config.appDir) / 'staticfiles'
 
     if not config.in_build():
         db_settings = config.credentials('database')
