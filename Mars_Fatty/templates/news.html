@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Space News | Astro Surf{% endblock %}
+
+{% block extra_style %}
+<style>
+    .news-header {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .article-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .article-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.15);
+        border-color: var(--accent-cyan);
+    }
+
+    .article-img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .article-content {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .article-title {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        margin: 0 0 10px 0;
+        line-height: 1.3;
+    }
+
+    .article-summary {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+        flex-grow: 1;
+    }
+
+    .article-meta {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px dotted var(--border-dim);
+    }
+
+    .article-source {
+        color: var(--accent-amber);
+    }
+
+    .read-more-btn {
+        display: inline-block;
+        background: transparent;
+        border: 1px solid var(--accent-cyan);
+        color: var(--accent-cyan);
+        text-decoration: none;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        padding: 5px 10px;
+        border-radius: 3px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .read-more-btn:hover {
+        background: var(--accent-cyan);
+        color: #000;
+    }
+
+    .news-status {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--nominal);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="news-header">
+        <h2 style="text-shadow: 0 0 10px var(--accent-cyan); display:flex; align-items:center; gap:10px;">
+            <span>INTERPLANETARY NEWS NETWORK</span>
+        </h2>
+    </div>
+
+    {% if error %}
+        <div class="error" style="margin-bottom: 20px;">{{ error }}</div>
+    {% else %}
+        <div class="news-status">
+            <span class="blink">●</span> D-LINK ACTIVE // RECEIVING LATEST TRANSMISSIONS
+        </div>
+
+        <div class="news-grid">
+            {% for article in articles %}
+                <div class="article-card">
+                    {% if article.image_url %}
+                        <img src="{{ article.image_url }}" alt="Article Image" class="article-img">
+                    {% else %}
+                        <div class="article-img" style="background: var(--bg-void); display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 0.8rem;">NO IMAGE SIG</div>
+                    {% endif %}
+
+                    <div class="article-content">
+                        <h3 class="article-title">{{ article.title }}</h3>
+                        <p class="article-summary">{{ article.summary|truncatewords:25 }}</p>
+
+                        <div style="margin-top: 15px; margin-bottom: 10px;">
+                            <a href="{{ article.url }}" target="_blank" class="read-more-btn">ACCESS FULL LOG &rarr;</a>
+                        </div>
+
+                        <div class="article-meta">
+                            <span class="article-source">SRC: {{ article.news_site }}</span>
+                            <span>{{ article.published_at|slice:":10" }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <p style="color: var(--text-secondary); font-family: var(--font-mono);">No news transmissions received at this time.</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

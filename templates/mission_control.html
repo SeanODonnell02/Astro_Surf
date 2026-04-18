@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+{% block title %}Mission Control | astroSurf{% endblock %}
+
+{% block extra_style %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    .mission-control-layout {
+        display: grid;
+        grid-template-columns: 1fr; /* Single column layout */
+        gap: 15px;
+        width: 100%;
+    }
+    .grid-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 15px;
+    }
+    .left-column { display: flex; flex-direction: column; gap: 15px; }
+    .right-column { display: flex; flex-direction: column; gap: 15px; }
+
+    #mars-map {
+        height: 400px;
+        background-color: #1a1a1a;
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+    }
+    .leaflet-container { background: #1a1a1a; }
+
+    .terminal {
+        height: 250px;
+        background: var(--bg-void);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .terminal-output {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+        color: var(--text-secondary);
+    }
+    .terminal-input-line {
+        display: flex;
+        padding: 5px 10px;
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border-dim);
+    }
+    .terminal-prompt { color: var(--accent-cyan); margin-right: 8px; }
+    #terminal-input {
+        background: none;
+        border: none;
+        color: var(--nominal);
+        flex-grow: 1;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+    }
+    #terminal-input:focus { outline: none; }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
+    }
+    .status-item {
+        background: rgba(10, 15, 22, 0.6);
+        border: 1px solid var(--border-dim);
+        padding: 10px;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .status-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        display: block;
+        margin-top: 5px;
+    }
+    .status-nominal { color: var(--nominal); border-left: 3px solid var(--nominal); }
+    .status-warning { color: var(--warning); border-left: 3px solid var(--warning); }
+    .status-critical { color: var(--critical); border-left: 3px solid var(--critical); }
+
+    .mission-log-new {
+        height: 300px;
+        background: var(--bg-void);
+        border: 1px solid var(--border-dim);
+        padding: 10px;
+        overflow-y: auto;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mission-control-layout">
+    <div class="grid-container">
+        <div class="left-column">
+            <div class="panel">
+                <h2>[ MARS SURFACE MAP ]</h2>
+                <div id="mars-map"></div>
+            </div>
+            <div class="panel">
+                <h2>[ SYSTEM_STATUS ]</h2>
+                <div class="status-grid" id="status-grid"></div>
+            </div>
+        </div>
+        <div class="right-column">
+            <div class="panel">
+                <h2>[ COMMAND_TERMINAL ]</h2>
+                <div class="terminal">
+                    <div class="terminal-output" id="terminal-output">
+                        <div>AstroSurf Command Interface v2.2</div>
+                        <div>Type 'help' for a list of commands.</div>
+                    </div>
+                    <div class="terminal-input-line">
+                        <span class="terminal-prompt">></span>
+                        <input type="text" id="terminal-input" autofocus />
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <h2>[ MISSION_LOG ]</h2>
+                <div class="mission-log-new" id="mission-log"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    // --- 1. Mars Map ---
+    const map = L.map('mars-map', {
+        center: [0, 0],
+        zoom: 2,
+        zoomControl: true,
+        maxBounds: [[-90, -180], [90, 180]]
+    });
+
+    L.tileLayer('https://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/viking_mdim21_global/{z}/{x}/{y}.png', {
+        attribution: 'NASA/USGS',
+        minZoom: 2,
+        maxZoom: 5,
+        noWrap: true,
+    }).addTo(map);
+
+    const sites = {
+        'Perseverance': L.marker([18.44, 77.45]).addTo(map).bindPopup('<b>Perseverance Rover</b><br>Jezero Crater'),
+        'Curiosity': L.marker([-4.59, 137.44]).addTo(map).bindPopup('<b>Curiosity Rover</b><br>Gale Crater'),
+        'Olympus Mons': L.marker([18.65, -133.8]).addTo(map).bindPopup('<b>Olympus Mons</b><br>Largest volcano in the solar system.'),
+    };
+
+    // --- 2. System Status Grid ---
+    const statusGrid = document.getElementById('status-grid');
+    const systems = {
+        'LIFE_SUPPORT': { value: 99.8, unit: '%', status: 'nominal' },
+        'POWER': { value: 87.2, unit: '%', status: 'nominal' },
+        'COMMS': { value: 99.9, unit: '%', status: 'nominal' },
+        'PROPULSION': { value: 100, unit: '%', status: 'nominal' },
+        'TEMP_CORE': { value: -15.2, unit: '°C', status: 'warning' },
+        'DRILL_STATUS': { value: 'IDLE', unit: '', status: 'nominal' },
+    };
+
+    function renderStatus() {
+        statusGrid.innerHTML = '';
+        for (const [name, data] of Object.entries(systems)) {
+            const item = document.createElement('div');
+            item.className = `status-item status-${data.status}`;
+            item.innerHTML = `
+                ${name.replace('_', ' ')}
+                <span class="status-value">${data.value}${data.unit}</span>
+            `;
+            statusGrid.appendChild(item);
+        }
+    }
+
+    // --- 3. Command Terminal ---
+    const termInput = document.getElementById('terminal-input');
+    const termOutput = document.getElementById('terminal-output');
+    const commands = {
+        'help': 'Available commands: help, status, scan [system], clear',
+        'status': () => JSON.stringify(systems, null, 2),
+        'scan': (system) => {
+            if (system && systems[system.toUpperCase()]) {
+                return `Scanning ${system.toUpperCase()}... Done. Status: ${systems[system.toUpperCase()].status}`;
+            }
+            return 'ERROR: Unknown system. Try: ' + Object.keys(systems).join(', ');
+        },
+        'clear': () => { termOutput.innerHTML = ''; return 'Terminal cleared.'; }
+    };
+
+    termInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const input = termInput.value.trim();
+            const [command, ...args] = input.split(' ');
+
+            const outputLine = document.createElement('div');
+            outputLine.innerHTML = `<span class="terminal-prompt">></span> ${input}`;
+            termOutput.appendChild(outputLine);
+
+            if (commands[command]) {
+                const result = typeof commands[command] === 'function' ? commands[command](...args) : commands[command];
+                const resultLine = document.createElement('div');
+                resultLine.textContent = result;
+                termOutput.appendChild(resultLine);
+            } else {
+                const errorLine = document.createElement('div');
+                errorLine.textContent = `ERROR: Command not found: ${command}`;
+                termOutput.appendChild(errorLine);
+            }
+
+            termInput.value = '';
+            termOutput.scrollTop = termOutput.scrollHeight;
+        }
+    });
+
+    // --- 4. Mission Log ---
+    const missionLog = document.getElementById('mission-log');
+    function addLog(message, type = 'INFO') {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-GB');
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `<span style="color:var(--accent-amber)">[${timeStr}]</span> [${type}] ${message}`;
+        missionLog.prepend(logEntry);
+    }
+
+    // --- 5. Initialization and Live Updates ---
+    document.addEventListener('DOMContentLoaded', () => {
+        renderStatus();
+        addLog('Mission Control Initialized.', 'SYSTEM');
+
+        // Simulate live data changes
+        setInterval(() => {
+            systems.POWER.value = (85 + Math.random() * 5).toFixed(1);
+            if (systems.POWER.value < 86) systems.POWER.status = 'warning';
+            else systems.POWER.status = 'nominal';
+
+            if (Math.random() > 0.9) {
+                addLog('Minor solar flare detected. Power grid fluctuating.', 'EVENT');
+                systems.COMMS.status = 'warning';
+            } else {
+                systems.COMMS.status = 'nominal';
+            }
+            renderStatus();
+        }, 3000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block extra_style %}
+<style>
+    label { color: var(--text-secondary); display: block; margin-bottom: 0.5rem; }
+    input { background: var(--bg-void); border: 1px solid var(--border-dim); color: var(--nominal); padding: 10px; width: 100%; margin-bottom: 1rem; box-sizing: border-box; }
+    p { color: var(--text-primary); }
+    .errorlist { color: var(--critical); list-style: none; padding: 0; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="panel">
+        <h2 style="color: var(--accent-amber); text-transform: uppercase; letter-spacing: 2px;">[ MISSION_ACCESS ]</h2>
+        
+        <div style="margin-top: 1rem; margin-bottom: 1rem;">
+            <p class="context-text" style="color: var(--warning);">ENCRYPTION: ACTIVE</p>
+            <p class="context-text" style="color: var(--warning); font-size: 0.7rem; margin-top: 0.5rem;">Awaiting secure handshake...</p>
+        </div>
+        
+        {% if form.errors %}
+            <p class="error" style="margin-bottom: 1rem;">Authentication failed. Invalid credentials.</p>
+        {% endif %}
+
+        <form method="post" style="margin-bottom: 1rem;">
+            {% csrf_token %}
+            <div class="auth-form-container">
+                {{ form.as_p }}
+            </div>
+            <button type="submit" class="logout-btn" style="border: 1px solid var(--accent-cyan); padding: 10px 20px; color: var(--accent-cyan); width: 100%; margin-top: 1rem;">[ LOG-IN ]</button>
+        </form>
+
+        <h2>[ NEW_USER_REGISTRATION ]</h2>
+        <div style="margin-top: 1rem; margin-bottom: 1rem;">
+            <p class="context-text" style="margin-bottom: 1.5rem;">No active mission profile detected on this terminal.</p>
+            <a href="{% url 'accounts:register' %}" class="nav-link" style="display: inline-block; border: 1px solid var(--mars-orange); padding: 10px 20px; color: var(--mars-orange); text-transform: uppercase; letter-spacing: 2px; font-family: var(--font-mono); font-size: 0.8rem;">[ CREATE_ACCOUNT ]</a>
+        </div>
+
+    </div>
+{% endblock %}

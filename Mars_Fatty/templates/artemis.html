@@ -1,0 +1,1294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Artemis Program | Astro Surf{% endblock %}
+
+{% block extra_style %}
+<style>
+    /* ============================================================
+       ARTEMIS PROGRAM COMMAND — STYLES
+       ============================================================ */
+
+    :root {
+        --glass-bg: rgba(5, 8, 15, 0.75);
+        --glass-border: rgba(0, 212, 255, 0.25);
+    }
+
+    .artemis-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .artemis-panel {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        padding: 1.2rem;
+        border-radius: 4px;
+        position: relative;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        overflow: hidden;
+    }
+
+    .artemis-panel h3.panel-title {
+        color: var(--mars-orange);
+        margin-top: 0;
+        font-family: var(--font-mono);
+        border-bottom: 1px solid var(--border-dim);
+        padding-bottom: 10px;
+        letter-spacing: 2px;
+        font-size: 0.95rem;
+    }
+
+    /* ---------- Status Banner ---------- */
+    .status-banner {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--border-dim);
+        border: 1px solid var(--border-dim);
+        margin-bottom: 20px;
+        font-family: var(--font-mono);
+    }
+    .status-cell {
+        background: var(--bg-surface);
+        padding: 10px 14px;
+        font-size: 0.7rem;
+    }
+    .status-cell .label {
+        color: var(--text-dim);
+        letter-spacing: 1px;
+        font-size: 0.65rem;
+    }
+    .status-cell .value {
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        margin-top: 3px;
+    }
+    .status-cell .value.nominal { color: var(--nominal); }
+    .status-cell .value.caution { color: var(--accent-amber); }
+
+    /* ---------- Timers ---------- */
+    .timer-row {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .timer-box {
+        padding: 16px 20px;
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+    }
+    .timer-box.complete { background: rgba(0, 255, 136, 0.06); border-color: var(--nominal); }
+    .timer-box.countdown { background: rgba(255, 184, 0, 0.05); border-color: var(--accent-amber); }
+    .timer-digits {
+        font-family: var(--font-mono);
+        font-weight: bold;
+        font-size: 2rem;
+        letter-spacing: 3px;
+    }
+    .timer-digits.nominal { color: var(--nominal); text-shadow: 0 0 10px rgba(0,255,136,0.4); }
+    .timer-digits.amber { color: var(--accent-amber); text-shadow: 0 0 10px rgba(255,184,0,0.5); }
+
+    /* ---------- 3D VIEWPORT & POLISHED CONTROLS ---------- */
+    .viewport-wrapper {
+        border: 1px solid var(--border-bright);
+        background: #000;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 15px;
+        position: relative;
+    }
+
+    #flight-path-container {
+        width: 100%;
+        height: 500px;
+        background: radial-gradient(circle at center, #0a0f1a 0%, #000 100%);
+        position: relative;
+    }
+
+    /* Glassmorphism HUD Overlays */
+    .telemetry-overlay, .phase-legend {
+        position: absolute;
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        padding: 10px 12px;
+        font-family: var(--font-mono);
+        z-index: 10;
+        pointer-events: none;
+    }
+    .telemetry-overlay { top: 10px; left: 10px; min-width: 220px; font-size: 0.7rem; }
+    .phase-legend { top: 10px; right: 10px; font-size: 0.65rem; }
+
+    /* Control Strip Styling */
+    .viewport-controls {
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border-bright);
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+    .control-group { display: flex; gap: 8px; align-items: center; }
+
+    .scene-btn {
+        background: transparent;
+        border: 1px solid var(--border-dim);
+        color: var(--text-dim);
+        padding: 6px 12px;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 3px;
+    }
+    .scene-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+    .scene-btn.active {
+        background: rgba(0, 212, 255, 0.1);
+        border-color: var(--accent-cyan);
+        color: var(--accent-cyan);
+        box-shadow: 0 0 8px rgba(0,212,255,0.3);
+    }
+    .scene-btn.warn.active { border-color: var(--mars-orange); color: var(--mars-orange); background: rgba(255, 107, 53, 0.1); }
+
+    .speed-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-left: 15px;
+        border-left: 1px solid var(--border-dim);
+    }
+    .speed-control label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-dim); }
+    .speed-control input[type=range] { accent-color: var(--accent-cyan); cursor: pointer; }
+
+    .camera-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        z-index: 10;
+        align-items: center;
+        background: var(--glass-bg);
+        padding: 5px 10px;
+        border: 1px solid var(--glass-border);
+        border-radius: 4px;
+        backdrop-filter: blur(8px);
+    }
+
+    /* ---------- CRT Toggle Effect ---------- */
+    .crt-mode::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0px, rgba(0, 0, 0, 0.1) 1px, transparent 2px);
+        z-index: 5;
+    }
+
+    /* ---------- Mission Timeline ---------- */
+    .mission-timeline { position: relative; padding: 30px 10px 10px; margin-top: 20px; }
+    .timeline-track { position: relative; height: 4px; background: var(--accent-cyan); border-radius: 2px; }
+    .timeline-event {
+        position: absolute; top: -8px; transform: translateX(-50%);
+        width: 18px; height: 18px; border-radius: 50%;
+        background: var(--bg-void); border: 2px solid var(--accent-cyan);
+        cursor: pointer; transition: 0.2s;
+    }
+    .timeline-event:hover, .timeline-event.active { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+
+    /* ---------- Stats & Crew ---------- */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat-card { background: var(--bg-void); border: 1px solid var(--border-dim); padding: 14px 12px; text-align: center; }
+    .crew-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+    .crew-card { background: var(--bg-void); border: 1px solid var(--border-dim); padding: 12px; display: flex; gap: 10px; align-items: center; }
+
+    .flight-log {
+        margin-top: 20px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-secondary);
+        border: 1px solid var(--border-dim); padding: 8px 10px; background: var(--bg-void);
+        max-height: 140px; overflow: hidden;
+    }
+
+    /* ---------- Diagnostics ---------- */
+    .diag-row { margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.78rem; }
+    .diag-bar-track { width: 100%; height: 5px; background: var(--border-dim); border-radius: 2px; overflow: hidden; }
+    .diag-bar-fill { height: 100%; transition: width 0.6s ease; }
+    .diag-bar-fill.nominal { background: var(--nominal); }
+    .diag-bar-fill.caution { background: var(--accent-amber); }
+    .diag-bar-fill.critical { background: var(--critical); }
+
+    @media (max-width: 900px) {
+        .artemis-grid, .status-banner, .stats-grid { grid-template-columns: 1fr; }
+        .viewport-controls { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="panel" id="artemis-root">
+    <h2 style="text-shadow: 0 0 10px var(--accent-cyan); display:flex; align-items:center; gap:10px;">
+        <span>ARTEMIS PROGRAM COMMAND</span>
+        <span style="font-family:var(--font-mono); font-size:0.65rem; color:var(--nominal); padding:2px 8px; border:1px solid var(--nominal); border-radius:3px; letter-spacing:2px;">LIVE</span>
+    </h2>
+
+    <div class="status-banner">
+        <div class="status-cell"><div class="label">ACTIVE MISSION</div><div class="value nominal">{{ active_mission }}</div></div>
+        <div class="status-cell"><div class="label">PROGRAM STATUS</div><div class="value nominal">NOMINAL</div></div>
+        <div class="status-cell"><div class="label">NEXT LAUNCH</div><div class="value caution">{{ next_mission.name }}</div></div>
+        <div class="status-cell"><div class="label">DSN LINK</div><div class="value nominal">GOLDSTONE / LOCKED</div></div>
+    </div>
+
+    <div class="timer-row">
+        <div class="timer-box complete">
+            <div class="timer-digits nominal" id="met-clock">T+00D : 00H : 00M : 00S</div>
+            <div style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-dim);">MET: 09D 19H 25M 30S (FINAL) · Recovery Complete</div>
+        </div>
+        <div class="timer-box countdown">
+            <div class="timer-digits amber" id="artemis-countdown">LOADING...</div>
+            <div style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-dim);">Target: <span id="target-launch-date">{{ next_mission.launch_date }}</span></div>
+        </div>
+    </div>
+
+    <div class="artemis-grid">
+        <div class="artemis-panel" style="grid-column: 1 / -1;">
+            <h3 class="panel-title">[ ARTEMIS II FREE-RETURN TRAJECTORY — FLOWN PROFILE ]</h3>
+
+            <div class="viewport-wrapper">
+                <div id="flight-path-container">
+                    <div class="telemetry-overlay">
+                        <div class="tag">◆ ORION · "INTEGRITY"</div>
+                        <div class="row"><span class="key">PHASE</span><span class="val" id="sim-phase">—</span></div>
+                        <div class="row"><span class="key">MET</span><span class="val" id="sim-met">—</span></div>
+                        <div class="row"><span class="key">DIST EARTH</span><span class="val" id="sim-dist-e">—</span></div>
+                        <div class="row"><span class="key">DIST MOON</span><span class="val" id="sim-dist-m">—</span></div>
+                        <div class="row"><span class="key">VELOCITY</span><span class="val" id="sim-vel">—</span></div>
+                        <div class="row"><span class="key">SIGNAL</span><span class="val" id="sim-signal" style="color:var(--nominal);">LOCKED</span></div>
+                    </div>
+
+                    <div class="phase-legend">
+                        <div class="legend-title">TRAJECTORY MARKERS</div>
+                        <div class="legend-item"><span class="dot" style="background:#ffb800"></span>LAUNCH</div>
+                        <div class="legend-item"><span class="dot" style="background:#00d4ff"></span>TLI BURN</div>
+                        <div class="legend-item"><span class="dot" style="background:#ff6b35"></span>LUNAR FLYBY</div>
+                        <div class="legend-item"><span class="dot" style="background:#a866ff"></span>TEI BURN</div>
+                        <div class="legend-item"><span class="dot" style="background:#00ff88"></span>SPLASHDOWN</div>
+                    </div>
+
+                    <div class="camera-controls">
+                        <button class="scene-btn active" data-view="free">FREE CAM</button>
+                        <button class="scene-btn" data-view="follow">FOLLOW</button>
+                        <button class="scene-btn" data-view="earth">EARTH</button>
+                        <button class="scene-btn" data-view="moon">MOON</button>
+                        <button class="scene-btn" data-view="top">TOP-DOWN</button>
+                    </div>
+                </div>
+
+                <div class="viewport-controls">
+                    <div class="control-group" style="visibility: hidden;">
+                        <!-- Placeholder -->
+                    </div>
+                    <div class="control-group" style="width: 100%; justify-content: space-between;">
+                        <button class="scene-btn warn" id="crt-toggle">CRT FX</button>
+                        <div class="speed-control">
+                            <label>SIM SPD</label>
+                            <input type="range" id="speed-slider" min="0" max="5" step="0.1" value="1">
+                            <span class="speed-val" id="speed-val">1.0×</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mission-timeline">
+                <div class="timeline-track" id="timeline-track"></div>
+                <div id="timeline-detail" style="margin-top:40px; padding:12px; border:1px dashed var(--border-dim); font-size:0.75rem;">
+                    <div style="color:var(--accent-cyan);" id="td-title">◆ SELECT MILESTONE</div>
+                    <div id="td-body">Interact with markers for historical telemetry.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="artemis-panel" style="grid-column: 1 / -1;">
+            <h3 class="panel-title">[ ARTEMIS II — FLIGHT STATS ]</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">DURATION</div><div class="stat-value" style="color:var(--accent-cyan); font-size:1.4rem;">9D 19H</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">MAX DISTANCE</div><div class="stat-value" style="color:var(--accent-cyan); font-size:1.4rem;">252,021 MI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">REENTRY SPEED</div><div class="stat-value" style="color:var(--accent-cyan); font-size:1.4rem;">24,500 MPH</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">APOLLO 13 RECORD</div><div class="stat-value" style="color:var(--nominal); font-size:1.4rem;">BROKEN</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="artemis-panel">
+            <h3 class="panel-title">[ FLIGHT CREW — INTEGRITY ]</h3>
+            <div class="crew-grid">
+                {% for c in crew %}
+                <div class="crew-card">
+                    <div style="width:40px; height:40px; border-radius:50%; background:var(--accent-cyan); opacity:0.3; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 2px solid {{ c.patch_color }}">
+                        <!-- Procedural astronaut portrait SVG -->
+                        <svg viewBox="0 0 48 48" style="width: 100%; height: 100%;">
+                            <defs>
+                                <radialGradient id="vg{{ forloop.counter }}" cx="0.3" cy="0.3">
+                                    <stop offset="0%" stop-color="#8a9cb3"/>
+                                    <stop offset="100%" stop-color="#2b3440"/>
+                                </radialGradient>
+                            </defs>
+                            <!-- Helmet -->
+                            <circle cx="24" cy="22" r="15" fill="url(#vg{{ forloop.counter }})"/>
+                            <!-- Visor -->
+                            <ellipse cx="24" cy="22" rx="10" ry="8" fill="#0a1520" stroke="#00d4ff" stroke-width="0.5"/>
+                            <!-- Visor highlight -->
+                            <ellipse cx="20" cy="19" rx="3" ry="2" fill="#00d4ff" opacity="0.35"/>
+                            <!-- Shoulders / suit -->
+                            <path d="M 6 48 Q 6 36 14 34 L 34 34 Q 42 36 42 48 Z" fill="#d8dde3"/>
+                        </svg>
+                    </div>
+                    <div><div class="crew-name" style="font-family: var(--font-display); font-size: 0.9rem; color: var(--text-primary); line-height: 1.1;">{{ c.name }}</div><div class="crew-role" style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--accent-cyan); letter-spacing: 1.5px; margin-top: 3px;">{{ c.role }}</div></div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flight-log" id="flight-log"></div>
+        </div>
+
+        <div class="artemis-panel">
+            <h3 class="panel-title">[ MISSION ROADMAP ]</h3>
+            <div style="font-size:0.75rem;">
+                <div style="color:var(--nominal); margin-bottom:8px;">◆ ARTEMIS II: MISSION COMPLETE</div>
+                <div style="color:var(--accent-amber); margin-bottom:8px;">◆ ARTEMIS III: LEO LANDER DEMO (PLANNED)</div>
+                <div style="color:var(--text-dim);">◆ ARTEMIS IV: NRHO OPERATIONS</div>
+            </div>
+        </div>
+
+        <div class="artemis-panel" style="grid-column: 1 / -1;">
+            <h3 class="panel-title">[ PROGRAM DIAGNOSTICS ]</h3>
+            <div class="artemis-grid">
+                <div>
+                    {% for d in diagnostics %}
+                    <div class="diag-row">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="color: var(--text-primary)">{{ d.name }}</span>
+                            <span style="color: var(--{% if d.status == 'nominal' %}nominal{% elif d.status == 'caution' %}accent-amber{% else %}critical{% endif %});">{{ d.value }}%</span>
+                        </div>
+                        <div class="diag-bar-track"><div class="diag-bar-fill {{ d.status }}" style="width:{{ d.value }}%;"></div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-dim); border:1px solid var(--border-dim); padding:10px;">
+                    > SLS CORE STAGE 2: STACKING<br>
+                    > ORION EM-3: THERMAL VAC COMPLETE<br>
+                    > DSN: GOLDSTONE LINK NOMINAL
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// 1. MET & COUNTDOWN
+const SPLASHDOWN = new Date('2026-04-10T17:29:00Z').getTime();
+function updateClocks() {
+    const met = Date.now() - SPLASHDOWN;
+    const d = Math.floor(met / 86400000);
+    const h = Math.floor((met % 86400000) / 3600000);
+    const m = Math.floor((met % 3600000) / 60000);
+    const s = Math.floor((met % 60000) / 1000);
+    document.getElementById('met-clock').textContent = `T+${d}D : ${String(h).padStart(2,'0')}H : ${String(m).padStart(2,'0')}M : ${String(s).padStart(2,'0')}S`;
+}
+setInterval(updateClocks, 1000); updateClocks();
+
+let targetArtemisLaunchDate = new Date('{{ next_mission.target_date }}').getTime();
+const cdEl = document.getElementById('artemis-countdown');
+
+function fetchNextArtemisLaunch() {
+    // We try to fetch real data from SpaceDevs API, but if it fails or there's no upcoming Artemis launch,
+    // we use a default upcoming date for demonstration purposes.
+    fetch('https://lldev.thespacedevs.com/2.2.0/launch/upcoming/?limit=10')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.results && data.results.length > 0) {
+                // Find the first launch in the list (or filter by name if we wanted only Artemis)
+                const nextLaunch = data.results[0];
+                targetArtemisLaunchDate = new Date(nextLaunch.net).getTime();
+            }
+        })
+        .catch(err => {
+            console.error("Failed to fetch next launch, using default.", err);
+        });
+}
+
+function updateCountdown() {
+    const d = targetArtemisLaunchDate - Date.now();
+    if (d < 0) {
+        cdEl.textContent = 'LAUNCH WINDOW OPEN';
+        // Try fetching the next one if it passed by more than an hour
+        if(Math.abs(d) > 3600000) {
+            fetchNextArtemisLaunch();
+        }
+        return;
+    }
+    const days = Math.floor(d / 86400000);
+    const h = Math.floor((d % 86400000) / 3600000);
+    const m = Math.floor((d % 3600000) / 60000);
+    const s = Math.floor((d % 60000) / 1000);
+    cdEl.textContent = `${days}D : ${String(h).padStart(2,'0')}H : ${String(m).padStart(2,'0')}M : ${String(s).padStart(2,'0')}S`;
+}
+fetchNextArtemisLaunch();
+setInterval(updateCountdown, 1000); updateCountdown();
+// Refresh launch data every hour
+setInterval(fetchNextArtemisLaunch, 3600000);
+
+
+// 2. THREE.JS SCENE
+const container = document.getElementById('flight-path-container');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000008, 0.002);
+
+const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 2000);
+camera.position.set(0, 12, 32);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 3;
+controls.maxDistance = 100;
+
+// ----------------------------------------------------------------
+// 3a. STARFIELD — 10,000 stars with realistic color temperature
+// ----------------------------------------------------------------
+function buildStarfield() {
+    const n = 10000;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3);
+    const col = new Float32Array(n * 3);
+    const sz  = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+        // Place stars on a large sphere
+        const r = 400 + Math.random() * 300;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+        pos[i*3+1] = r * Math.cos(phi);
+        pos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
+
+        // Stellar color: mostly whitish, some blue giants, some red dwarfs
+        const t = Math.random();
+        if (t < 0.7)       { col[i*3]=1.0; col[i*3+1]=1.0; col[i*3+2]=1.0; }
+        else if (t < 0.85) { col[i*3]=0.7; col[i*3+1]=0.8; col[i*3+2]=1.0; }
+        else               { col[i*3]=1.0; col[i*3+1]=0.75; col[i*3+2]=0.6; }
+
+        sz[i] = Math.random() < 0.02 ? 3.0 : (Math.random() < 0.15 ? 1.6 : 0.8);
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('size',     new THREE.BufferAttribute(sz, 1));
+
+    const mat = new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 } },
+        vertexShader: `
+            attribute float size;
+            varying vec3 vColor;
+            uniform float uTime;
+            void main() {
+                vColor = color;
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                // gentle twinkle based on position + time
+                float tw = 0.85 + 0.15 * sin(uTime * 2.0 + position.x * 0.5 + position.y * 0.7);
+                gl_PointSize = size * tw * (300.0 / -mv.z);
+                gl_Position = projectionMatrix * mv;
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vColor;
+            void main() {
+                // soft round points
+                float d = length(gl_PointCoord - 0.5);
+                if (d > 0.5) discard;
+                float a = smoothstep(0.5, 0.0, d);
+                gl_FragColor = vec4(vColor, a);
+            }
+        `,
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+    });
+    return new THREE.Points(geo, mat);
+}
+const stars = buildStarfield();
+scene.add(stars);
+
+// ----------------------------------------------------------------
+// 3b. SUN — bright distant sphere + directional light
+// ----------------------------------------------------------------
+const sunPos = new THREE.Vector3(-80, 30, 40);
+const sunLight = new THREE.DirectionalLight(0xfff4e0, 2.4);
+sunLight.position.copy(sunPos);
+scene.add(sunLight);
+scene.add(new THREE.AmbientLight(0x222a38, 0.6));
+
+// Visual sun disk
+const sunMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(4, 24, 24),
+    new THREE.MeshBasicMaterial({ color: 0xfff0c0 })
+);
+sunMesh.position.copy(sunPos);
+scene.add(sunMesh);
+
+// Sun corona (additive sprite)
+const coronaMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(0xffd070) } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+        varying vec2 vUv;
+        uniform vec3 uColor;
+        void main() {
+            float d = length(vUv - 0.5) * 2.0;
+            float a = pow(1.0 - clamp(d, 0.0, 1.0), 3.0);
+            gl_FragColor = vec4(uColor, a * 0.5);
+        }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+});
+const corona = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), coronaMat);
+corona.position.copy(sunPos);
+scene.add(corona);
+
+// ----------------------------------------------------------------
+// 3c. EARTH — custom shader (day/night + procedural continents + clouds + atmo glow)
+// ----------------------------------------------------------------
+
+// Simplex noise (Ashima) — standard GLSL include
+const NOISE_GLSL = `
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){
+  const vec2 C=vec2(1.0/6.0,1.0/3.0);const vec4 D=vec4(0.0,0.5,1.0,2.0);
+  vec3 i=floor(v+dot(v,C.yyy));vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz);vec3 l=1.0-g;vec3 i1=min(g.xyz,l.zxy);vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx;vec3 x2=x0-i2+C.yyy;vec3 x3=x0-D.yyy;
+  i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+  float n_=0.142857142857;vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.0*floor(p*ns.z*ns.z);vec4 x_=floor(j*ns.z);vec4 y_=floor(j-7.0*x_);
+  vec4 x=x_*ns.x+ns.yyyy;vec4 y=y_*ns.x+ns.yyyy;vec4 h=1.0-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy);vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.0+1.0;vec4 s1=floor(b1)*2.0+1.0;vec4 sh=-step(h,vec4(0.0));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);m=m*m;
+  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+}
+float fbm(vec3 p){
+  float v=0.0; float a=0.5;
+  for(int i=0;i<5;i++){ v+=a*snoise(p); p*=2.03; a*=0.5; }
+  return v;
+}
+`;
+
+const earthVS = `
+varying vec3 vNormal;
+varying vec3 vPos;
+varying vec3 vWorldPos;
+void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vPos = position;
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vWorldPos = wp.xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const earthFS = `
+${NOISE_GLSL}
+varying vec3 vNormal;
+varying vec3 vPos;
+varying vec3 vWorldPos;
+uniform vec3 uLightDir;
+uniform float uTime;
+
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 p = normalize(vPos);
+
+    // FBM for continents
+    float continents = fbm(p * 2.2);
+    float detail     = fbm(p * 6.0) * 0.25;
+    float land = smoothstep(0.02, 0.12, continents + detail);
+
+    // Ocean color (deep blue to teal)
+    vec3 oceanDeep = vec3(0.03, 0.12, 0.28);
+    vec3 oceanShallow = vec3(0.08, 0.34, 0.55);
+    float depth = smoothstep(-0.4, 0.05, continents);
+    vec3 ocean = mix(oceanDeep, oceanShallow, depth);
+
+    // Land color varies by latitude + noise
+    float lat = abs(p.y);
+    vec3 tropic = vec3(0.18, 0.42, 0.15);
+    vec3 arid   = vec3(0.55, 0.44, 0.23);
+    vec3 polar  = vec3(0.92, 0.95, 0.98);
+    float dryness = fbm(p * 4.0 + vec3(11.0));
+    vec3 landCol = mix(tropic, arid, smoothstep(0.0, 0.6, dryness * 0.7 + lat * 0.4));
+    landCol = mix(landCol, polar, smoothstep(0.78, 0.95, lat));
+
+    vec3 surface = mix(ocean, landCol, land);
+
+    // Day / night
+    float lambert = max(dot(n, normalize(uLightDir)), 0.0);
+    float dayNight = smoothstep(-0.05, 0.25, dot(n, normalize(uLightDir)));
+
+    // Specular highlight on ocean
+    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+    vec3 halfDir = normalize(normalize(uLightDir) + viewDir);
+    float spec = pow(max(dot(n, halfDir), 0.0), 40.0) * (1.0 - land) * dayNight;
+
+    // City lights on the night side (procedural "urban" clusters)
+    float cityNoise = fbm(p * 8.0);
+    float cityMask = smoothstep(0.2, 0.55, cityNoise) * land;
+    vec3 cityGlow = vec3(1.0, 0.75, 0.3) * cityMask * (1.0 - dayNight) * 0.9;
+
+    // Ambient night side
+    vec3 nightAmbient = vec3(0.02, 0.04, 0.08);
+
+    vec3 litSurface = surface * (0.15 + lambert);
+    vec3 finalCol = mix(nightAmbient + cityGlow, litSurface + vec3(spec), dayNight);
+
+    gl_FragColor = vec4(finalCol, 1.0);
+}
+`;
+
+const EARTH_RADIUS = 2.0;
+const earthUniforms = {
+    uLightDir: { value: sunPos.clone().normalize() },
+    uTime: { value: 0.0 }
+};
+const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_RADIUS, 96, 96),
+    new THREE.ShaderMaterial({
+        uniforms: earthUniforms,
+        vertexShader: earthVS,
+        fragmentShader: earthFS
+    })
+);
+earth.position.set(-11, 0, 0);
+scene.add(earth);
+
+// Cloud layer (slightly larger sphere with noisy alpha)
+const cloudFS = `
+${NOISE_GLSL}
+varying vec3 vNormal;
+varying vec3 vPos;
+uniform vec3 uLightDir;
+uniform float uTime;
+void main() {
+    vec3 p = normalize(vPos);
+    float c = fbm(p * 3.5 + vec3(uTime * 0.02, 0.0, uTime * 0.01));
+    float alpha = smoothstep(0.15, 0.55, c) * 0.55;
+    float lambert = max(dot(normalize(vNormal), normalize(uLightDir)), 0.0);
+    vec3 col = vec3(1.0) * (0.35 + 0.65 * lambert);
+    gl_FragColor = vec4(col, alpha);
+}
+`;
+const cloudUniforms = {
+    uLightDir: { value: sunPos.clone().normalize() },
+    uTime: { value: 0.0 }
+};
+const clouds = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_RADIUS * 1.015, 64, 64),
+    new THREE.ShaderMaterial({
+        uniforms: cloudUniforms,
+        vertexShader: earthVS,
+        fragmentShader: cloudFS,
+        transparent: true,
+        depthWrite: false
+    })
+);
+earth.add(clouds);
+
+// Atmospheric fresnel glow
+const atmoFS = `
+varying vec3 vNormal;
+varying vec3 vWorldPos;
+void main() {
+    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+    float f = pow(1.0 - max(dot(normalize(vNormal), viewDir), 0.0), 2.5);
+    gl_FragColor = vec4(vec3(0.3, 0.6, 1.0), f * 0.8);
+}
+`;
+const atmo = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_RADIUS * 1.08, 64, 64),
+    new THREE.ShaderMaterial({
+        vertexShader: earthVS,
+        fragmentShader: atmoFS,
+        side: THREE.BackSide,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+    })
+);
+earth.add(atmo);
+
+// ----------------------------------------------------------------
+// 3d. MOON — cratered procedural surface
+// ----------------------------------------------------------------
+const moonFS = `
+${NOISE_GLSL}
+varying vec3 vNormal;
+varying vec3 vPos;
+uniform vec3 uLightDir;
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 p = normalize(vPos);
+
+    // Base maria (dark patches) via FBM
+    float maria = smoothstep(-0.2, 0.15, fbm(p * 2.8));
+    vec3 highland = vec3(0.74, 0.72, 0.68);
+    vec3 mare     = vec3(0.32, 0.31, 0.30);
+    vec3 base = mix(mare, highland, maria);
+
+    // Crater impacts — use high-freq noise for pits
+    float craters = smoothstep(0.55, 0.8, fbm(p * 9.0)) * 0.35;
+    base *= (1.0 - craters);
+
+    // Brighter crater rims
+    float rim = smoothstep(0.72, 0.78, fbm(p * 9.0)) - smoothstep(0.78, 0.85, fbm(p * 9.0));
+    base += vec3(0.18) * max(rim, 0.0);
+
+    float lambert = max(dot(n, normalize(uLightDir)), 0.0);
+    vec3 lit = base * (0.06 + lambert);
+
+    gl_FragColor = vec4(lit, 1.0);
+}
+`;
+const moonUniforms = { uLightDir: { value: sunPos.clone().normalize() } };
+const MOON_RADIUS = 0.55;
+const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(MOON_RADIUS, 64, 64),
+    new THREE.ShaderMaterial({
+        uniforms: moonUniforms,
+        vertexShader: earthVS,
+        fragmentShader: moonFS
+    })
+);
+moon.position.set(12, 0, 0);
+scene.add(moon);
+
+// ----------------------------------------------------------------
+// 3e. TRAJECTORY — free-return curve as glowing tube + particle trail
+// ----------------------------------------------------------------
+// Control points model an Earth→Moon free-return with outbound/lunar flyby/inbound
+const trajPoints = [
+    new THREE.Vector3(-11, 0, 0),      // LEO near Earth
+    new THREE.Vector3(-8, 3, 3),       // TLI
+    new THREE.Vector3(0, 4, 6),        // outbound
+    new THREE.Vector3(9, 3, 2),        // approach moon
+    new THREE.Vector3(13.5, 1.5, -2),  // flyby far side
+    new THREE.Vector3(11, -1, -4),     // swing around
+    new THREE.Vector3(4, -3, -3),      // TEI-ish
+    new THREE.Vector3(-4, -3, 0),      // inbound
+    new THREE.Vector3(-10, -1, 1),     // entry interface
+    new THREE.Vector3(-11, 0, 0)       // splashdown
+];
+const trajCurve = new THREE.CatmullRomCurve3(trajPoints, false, 'catmullrom', 0.5);
+
+const tubeGeo = new THREE.TubeGeometry(trajCurve, 400, 0.035, 12, false);
+const tubeMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0.0 } },
+    vertexShader: `
+        varying float vProg;
+        void main() {
+            vProg = uv.x;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        varying float vProg;
+        uniform float uTime;
+        void main() {
+            // gradient along the path + a scanning pulse
+            vec3 a = vec3(0.0, 0.83, 1.0);   // cyan
+            vec3 b = vec3(1.0, 0.42, 0.21);  // mars orange
+            vec3 c = mix(a, b, vProg);
+            float pulse = 0.55 + 0.45 * sin((vProg - uTime * 0.12) * 30.0);
+            gl_FragColor = vec4(c * pulse, 0.85);
+        }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+});
+const trajTube = new THREE.Mesh(tubeGeo, tubeMat);
+scene.add(trajTube);
+
+// Phase markers (glowing rings at key points)
+const PHASES = [
+    { t: 0.00, color: 0xffb800, label: 'LAUNCH',       name: 'Liftoff',        detail: 'SLS Block 1 ignition, 8.8M lbf thrust. LC-39B, 6:35 PM EDT Apr 1, 2026.' },
+    { t: 0.08, color: 0x00d4ff, label: 'TLI',          name: 'Translunar Injection', detail: 'ICPS burn places Orion on free-return trajectory. Last major engine firing until TEI.' },
+    { t: 0.48, color: 0xff6b35, label: 'FLYBY',        name: 'Lunar Flyby',    detail: 'Far-side pass at ~4,700 mi altitude. Max distance: 252,021 mi — new crewed record, beating Apollo 13 by 3,366 mi.' },
+    { t: 0.72, color: 0xa866ff, label: 'TEI',          name: 'Trans-Earth Insertion', detail: 'Corrective burn, 4.2 ft/s Δv, pushing Orion back toward Earth on final return leg.' },
+    { t: 0.95, color: 0x00ff88, label: 'SPLASHDOWN',   name: 'Pacific Splashdown', detail: 'Apr 10, 2026 — Orion Integrity recovered by USS John P. Murtha after 9D 19H 25M mission.' }
+];
+const markers = [];
+PHASES.forEach(ph => {
+    const p = trajCurve.getPointAt(ph.t);
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.18, 0.28, 24),
+        new THREE.MeshBasicMaterial({ color: ph.color, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+    );
+    const core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08, 12, 12),
+        new THREE.MeshBasicMaterial({ color: ph.color })
+    );
+    g.add(ring); g.add(core);
+    g.position.copy(p);
+    g.userData = ph;
+    scene.add(g);
+    markers.push(g);
+});
+
+// ----------------------------------------------------------------
+// 3f. ORION SPACECRAFT — built from primitives (CM + SM + solar arrays + engine)
+// ----------------------------------------------------------------
+const orion = new THREE.Group();
+
+// Crew module (conical capsule)
+const cm = new THREE.Mesh(
+    new THREE.ConeGeometry(0.12, 0.22, 16),
+    new THREE.MeshStandardMaterial({ color: 0xe8e8ec, metalness: 0.3, roughness: 0.5 })
+);
+cm.position.y = 0.11;
+orion.add(cm);
+
+// Heat shield ring (darker band at base of CM)
+const shield = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, 0.03, 16),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 })
+);
+shield.position.y = 0.005;
+orion.add(shield);
+
+// Service module (cylinder below CM)
+const sm = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.11, 0.11, 0.28, 16),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.2, roughness: 0.4 })
+);
+sm.position.y = -0.14;
+orion.add(sm);
+
+// SM stripes for detail
+const stripe = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.112, 0.112, 0.02, 16),
+    new THREE.MeshStandardMaterial({ color: 0x2a2a2a })
+);
+stripe.position.y = -0.05;
+orion.add(stripe);
+const stripe2 = stripe.clone(); stripe2.position.y = -0.23; orion.add(stripe2);
+
+// Solar arrays — 4 wings radiating
+const panelMat = new THREE.MeshStandardMaterial({
+    color: 0x0d1c3a, metalness: 0.7, roughness: 0.3, emissive: 0x0a1428, emissiveIntensity: 0.4
+});
+for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 0.005, 0.18),
+        panelMat
+    );
+    panel.position.set(Math.cos(angle) * 0.42, -0.14, Math.sin(angle) * 0.42);
+    panel.rotation.y = -angle;
+    orion.add(panel);
+
+    // Panel yoke
+    const yoke = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.02, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc })
+    );
+    yoke.position.set(Math.cos(angle) * 0.18, -0.14, Math.sin(angle) * 0.18);
+    yoke.rotation.y = -angle;
+    orion.add(yoke);
+}
+
+// Main engine bell at the bottom
+const engine = new THREE.Mesh(
+    new THREE.ConeGeometry(0.07, 0.12, 12, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4, side: THREE.DoubleSide })
+);
+engine.position.y = -0.34;
+engine.rotation.x = Math.PI;
+orion.add(engine);
+
+// Engine glow (additive sprite)
+const engineGlowMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uIntensity: { value: 1.0 } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+        varying vec2 vUv;
+        uniform float uTime;
+        uniform float uIntensity;
+        void main() {
+            float d = length(vUv - 0.5) * 2.0;
+            float a = pow(1.0 - clamp(d, 0.0, 1.0), 2.0);
+            float flick = 0.8 + 0.2 * sin(uTime * 40.0);
+            vec3 col = mix(vec3(1.0, 0.4, 0.1), vec3(0.4, 0.8, 1.0), a);
+            gl_FragColor = vec4(col, a * flick * uIntensity);
+        }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+});
+const engineGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.35), engineGlowMat);
+engineGlow.position.y = -0.42;
+engineGlow.rotation.x = Math.PI / 2;
+orion.add(engineGlow);
+
+// Point light at engine (subtle)
+const enginePoint = new THREE.PointLight(0x66aaff, 0.6, 3);
+enginePoint.position.y = -0.42;
+orion.add(enginePoint);
+
+// Orient whole ship so +Y is "up/forward" relative to path
+orion.scale.setScalar(1.1);
+scene.add(orion);
+
+// ----------------------------------------------------------------
+// 3g. PARTICLE TRAIL behind Orion
+// ----------------------------------------------------------------
+const TRAIL_LEN = 120;
+const trailPos = new Float32Array(TRAIL_LEN * 3);
+const trailAlpha = new Float32Array(TRAIL_LEN);
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+trailGeo.setAttribute('alpha',    new THREE.BufferAttribute(trailAlpha, 1));
+const trailMat = new THREE.ShaderMaterial({
+    uniforms: {},
+    vertexShader: `
+        attribute float alpha;
+        varying float vA;
+        void main() {
+            vA = alpha;
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = alpha * 6.0 * (280.0 / -mv.z);
+            gl_Position = projectionMatrix * mv;
+        }
+    `,
+    fragmentShader: `
+        varying float vA;
+        void main() {
+            float d = length(gl_PointCoord - 0.5);
+            if (d > 0.5) discard;
+            gl_FragColor = vec4(0.2, 0.85, 1.0, vA * (1.0 - d*2.0));
+        }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+});
+const trail = new THREE.Points(trailGeo, trailMat);
+scene.add(trail);
+let trailIdx = 0;
+
+// ================================================================
+// 4. ANIMATION STATE
+// ================================================================
+let progress = 0.0;
+let simSpeed = 1.0;
+let cameraMode = 'free';
+let clock = new THREE.Clock();
+
+const MISSION_TOTAL_HOURS = 9 * 24 + 19;  // 9d 19h
+
+// UI refs
+const phaseEl = document.getElementById('sim-phase');
+const metEl2  = document.getElementById('sim-met');
+const distEEl = document.getElementById('sim-dist-e');
+const distMEl = document.getElementById('sim-dist-m');
+const velEl   = document.getElementById('sim-vel');
+const sigEl   = document.getElementById('sim-signal');
+
+function phaseInfoAt(t) {
+    // Find which phase bucket we're in
+    let cur = PHASES[0], next = PHASES[PHASES.length - 1];
+    for (let i = 0; i < PHASES.length - 1; i++) {
+        if (t >= PHASES[i].t && t < PHASES[i+1].t) { cur = PHASES[i]; next = PHASES[i+1]; break; }
+    }
+    return cur;
+}
+
+// ================================================================
+// 5. CAMERA MODES
+// ================================================================
+const camTargets = {
+    free:   { pos: new THREE.Vector3(0, 12, 32),   look: new THREE.Vector3(0, 0, 0) },
+    earth:  { pos: new THREE.Vector3(-8, 2, 6),    look: new THREE.Vector3(-11, 0, 0) },
+    moon:   { pos: new THREE.Vector3(15, 2, 4),    look: new THREE.Vector3(12, 0, 0) },
+    top:    { pos: new THREE.Vector3(0, 35, 0.01), look: new THREE.Vector3(0, 0, 0) }
+};
+
+document.querySelectorAll('.scene-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.scene-btn[data-view]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        cameraMode = btn.dataset.view;
+        controls.enabled = (cameraMode === 'free');
+    });
+});
+
+document.getElementById('speed-slider').addEventListener('input', e => {
+    simSpeed = parseFloat(e.target.value);
+    document.getElementById('speed-val').textContent = simSpeed.toFixed(1) + '×';
+});
+
+document.getElementById('crt-toggle').addEventListener('click', () => {
+    const root = document.getElementById('flight-path-container');
+    root.classList.toggle('crt-mode');
+    document.getElementById('crt-toggle').classList.toggle('active');
+});
+
+// ================================================================
+// 6. MISSION TIMELINE (below 3D scene)
+// ================================================================
+const track = document.getElementById('timeline-track');
+const tdTitle = document.getElementById('td-title');
+const tdBody = document.getElementById('td-body');
+const tlEvents = [
+    { t: 0.00, name: 'LAUNCH',    date: 'APR 1 · 22:35 UTC', detail: PHASES[0].detail },
+    { t: 0.08, name: 'TLI',       date: 'APR 2 · ~02:00 UTC', detail: PHASES[1].detail },
+    { t: 0.48, name: 'FLYBY',     date: 'APR 5 · ~12:00 UTC', detail: PHASES[2].detail },
+    { t: 0.72, name: 'TEI',       date: 'APR 7 · ~18:00 UTC', detail: PHASES[3].detail },
+    { t: 0.95, name: 'ENTRY I/F', date: 'APR 10 · 17:10 UTC', detail: 'Entry Interface at 400,000 ft altitude. Skip reentry profile, peak deceleration ~4g.' },
+    { t: 1.00, name: 'SPLASHDOWN',date: 'APR 10 · 17:29 UTC', detail: PHASES[4].detail }
+];
+tlEvents.forEach((ev, i) => {
+    const el = document.createElement('div');
+    el.className = 'timeline-event';
+    el.style.left = (ev.t * 100) + '%';
+    el.innerHTML = `
+        <span class="timeline-event-label">${ev.name}</span>
+        <span class="timeline-event-date">${ev.date}</span>
+    `;
+    el.addEventListener('click', () => {
+        document.querySelectorAll('.timeline-event').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        tdTitle.textContent = `◆ ${ev.name} — ${ev.date}`;
+        tdBody.textContent = ev.detail;
+    });
+    track.appendChild(el);
+});
+
+// ================================================================
+// 7. FLIGHT LOG (scrolling telemetry-style)
+// ================================================================
+const logEl = document.getElementById('flight-log');
+const LOG_MSGS = [
+    ['MCC-H',  'Go for translunar coast.'],
+    ['ORION',  'Solar array wings locked.'],
+    ['CAPCOM', 'Integrity, you are go for imaging ops.'],
+    ['FIDO',   'Free-return trajectory nominal.'],
+    ['EECOM',  'All subsystems nominal.'],
+    ['GNC',    'Star tracker alignment confirmed.'],
+    ['CAPCOM', 'Crew sleep cycle one begins at MET 18:00.'],
+    ['FLIGHT', 'Cleared for CubeSat deployment sequence.'],
+    ['ORION',  'Copy all, Houston. Looking beautiful out there.'],
+    ['INCO',   'DSN lock confirmed Goldstone to Canberra handoff.'],
+    ['PROP',   'ESM fuel margin: +12% of plan.'],
+    ['MCC-H',  'Pressing with flight plan.'],
+    ['EECOM',  'Cabin pressure 14.7 PSI, nominal.'],
+    ['GNC',    'Orbital state vector updated.'],
+    ['CAPCOM', 'T+02:14:00. Welcome to the Moon, Integrity.']
+];
+let logI = 0;
+function addLog() {
+    const [src, msg] = LOG_MSGS[logI % LOG_MSGS.length];
+    logI++;
+    const now = new Date();
+    const ts = now.toISOString().slice(11, 19);
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `<span class="log-ts">${ts}</span><span class="log-src">[${src}]</span><span>${msg}</span>`;
+    logEl.insertBefore(row, logEl.firstChild);
+    while (logEl.children.length > 8) logEl.removeChild(logEl.lastChild);
+}
+setInterval(addLog, 2400);
+addLog();
+
+// ================================================================
+// 8. MAIN ANIMATION LOOP
+// ================================================================
+const tmpV = new THREE.Vector3();
+const tmpT = new THREE.Vector3();
+const tmpLook = new THREE.Vector3();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    const elapsed = clock.elapsedTime;
+
+    // Advance progress
+    progress += dt * 0.02 * simSpeed;
+    if (progress > 1.0) progress = 0.0;
+
+    // Shader time updates
+    stars.material.uniforms.uTime.value = elapsed;
+    tubeMat.uniforms.uTime.value = elapsed;
+    cloudUniforms.uTime.value = elapsed;
+    engineGlowMat.uniforms.uTime.value = elapsed;
+
+    // Earth + Moon spin
+    earth.rotation.y += 0.003 * simSpeed;
+    clouds.rotation.y += 0.0005 * simSpeed;
+    moon.rotation.y  += 0.0008 * simSpeed;
+
+    // Position Orion along trajectory
+    const pos = trajCurve.getPointAt(progress);
+    const tangent = trajCurve.getTangentAt(progress).normalize();
+    orion.position.copy(pos);
+
+    // Orient ship along tangent (ship's +Y points along travel direction)
+    tmpLook.copy(pos).add(tangent);
+    // We want the CM cone (+Y) to point along tangent
+    const up = new THREE.Vector3(0, 0, 1);
+    // Build quaternion from lookAt-style but offset
+    const m = new THREE.Matrix4().lookAt(pos, tmpLook, up);
+    orion.quaternion.setFromRotationMatrix(m);
+    orion.rotateX(Math.PI / 2);  // align cone tip forward
+
+    // Slow spin for the engine glow billboard to face camera-ish
+    engineGlow.lookAt(camera.position);
+
+    // Engine intensity pulses near burn events
+    let engineI = 0.2;
+    for (const ph of PHASES) {
+        if (ph.label === 'TLI' || ph.label === 'TEI') {
+            const d = Math.abs(progress - ph.t);
+            if (d < 0.04) engineI = Math.max(engineI, 1.6 * (1 - d / 0.04));
+        }
+    }
+    engineGlowMat.uniforms.uIntensity.value = engineI;
+    enginePoint.intensity = engineI * 1.4;
+
+    // Particle trail: inject new position at current tail index
+    trailPos[trailIdx * 3]     = pos.x;
+    trailPos[trailIdx * 3 + 1] = pos.y;
+    trailPos[trailIdx * 3 + 2] = pos.z;
+    // Reset all alphas then assign decreasing from trailIdx
+    for (let i = 0; i < TRAIL_LEN; i++) {
+        // age = how many steps behind trailIdx this slot is
+        const age = (trailIdx - i + TRAIL_LEN) % TRAIL_LEN;
+        trailAlpha[i] = Math.max(0, 1.0 - age / TRAIL_LEN);
+    }
+    trailIdx = (trailIdx + 1) % TRAIL_LEN;
+    trailGeo.attributes.position.needsUpdate = true;
+    trailGeo.attributes.alpha.needsUpdate = true;
+
+    // Marker ring billboards face camera + gentle pulse
+    markers.forEach((m, i) => {
+        m.lookAt(camera.position);
+        const s = 1 + 0.1 * Math.sin(elapsed * 2 + i);
+        m.scale.setScalar(s);
+    });
+
+    // Corona face camera
+    corona.lookAt(camera.position);
+
+    // Telemetry update
+    const ph = phaseInfoAt(progress);
+    phaseEl.textContent = ph.name.toUpperCase();
+    phaseEl.style.color = '#' + new THREE.Color(ph.color).getHexString();
+
+    // MET based on progress
+    const metTotal = progress * MISSION_TOTAL_HOURS;
+    const metD = Math.floor(metTotal / 24);
+    const metH = Math.floor(metTotal % 24);
+    const metM = Math.floor((metTotal * 60) % 60);
+    metEl2.textContent = `${metD}D ${String(metH).padStart(2,'0')}:${String(metM).padStart(2,'0')}`;
+
+    // Distance calcs — use a scale so scene units map to realistic ~400,000 km
+    const SCALE_KM = 32000;  // 1 scene unit ≈ 32,000 km (earth-moon ≈ 23 units = ~384k km)
+    const dEKm = Math.floor(pos.distanceTo(earth.position) * SCALE_KM);
+    const dMKm = Math.floor(pos.distanceTo(moon.position) * SCALE_KM);
+    distEEl.textContent = dEKm.toLocaleString() + ' KM';
+    distMEl.textContent = dMKm.toLocaleString() + ' KM';
+
+    // Velocity — rough model: faster near Earth, slower at apogee near Moon
+    // Use tangent magnitude with derivative approximation
+    const p2 = Math.min(1, progress + 0.001);
+    const pos2 = trajCurve.getPointAt(p2);
+    const rawVel = pos.distanceTo(pos2) / 0.001;
+    const vel = Math.floor(rawVel * 1400 + 1600);  // scaled to realistic km/h range
+    velEl.textContent = vel.toLocaleString() + ' KM/H';
+
+    // Signal — flickers mid-flyby
+    if (progress > 0.44 && progress < 0.52) {
+        sigEl.textContent = 'LOS · FAR SIDE';
+        sigEl.style.color = 'var(--accent-amber)';
+    } else {
+        sigEl.textContent = 'LOCKED';
+        sigEl.style.color = 'var(--nominal)';
+    }
+
+    // Camera logic per mode
+    if (cameraMode === 'follow') {
+        const behind = tangent.clone().multiplyScalar(-2.5);
+        tmpV.copy(pos).add(behind).add(new THREE.Vector3(0, 1.2, 0));
+        camera.position.lerp(tmpV, 0.06);
+        camera.lookAt(pos);
+    } else if (cameraMode === 'earth') {
+        camera.position.lerp(camTargets.earth.pos, 0.05);
+        tmpLook.lerp(camTargets.earth.look, 0.05);
+        camera.lookAt(camTargets.earth.look);
+    } else if (cameraMode === 'moon') {
+        camera.position.lerp(camTargets.moon.pos, 0.05);
+        camera.lookAt(camTargets.moon.look);
+    } else if (cameraMode === 'top') {
+        camera.position.lerp(camTargets.top.pos, 0.05);
+        camera.lookAt(camTargets.top.look);
+    } else {
+        controls.update();
+    }
+
+    // Slow starfield rotation (parallax feel)
+    stars.rotation.y += 0.00015;
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// ================================================================
+// 9. RESIZE
+// ================================================================
+window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mars Rover Command | Astro Surf{% endblock %}
+
+{% block extra_style %}
+<style>
+    .rover-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 20px;
+        height: 80vh;
+    }
+    #rover-3d-container {
+        width: 100%;
+        height: 100%;
+        background-color: var(--bg-void);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+    }
+    .photo-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        overflow-y: auto;
+        height: 100%;
+        padding: 10px;
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+    }
+    .photo-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid var(--border-bright);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .photo-item img:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px var(--accent-cyan);
+    }
+    .control-panel {
+        padding: 15px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <h2>Mars Rover Command</h2>
+    <div class="control-panel">
+        <form method="get">
+            <label for="rover">Select Rover:</label>
+            <select id="rover" name="rover">
+                <option value="curiosity" {% if selected_rover == 'curiosity' %}selected{% endif %}>Curiosity</option>
+                <option value="opportunity" {% if selected_rover == 'opportunity' %}selected{% endif %}>Opportunity / Spirit</option>
+                <option value="perseverance" {% if selected_rover == 'perseverance' %}selected{% endif %}>Perseverance</option>
+            </select>
+            <label for="sol">Martian Sol (Day):</label>
+            <input type="number" id="sol" name="sol" value="{{ selected_sol|default:'' }}" placeholder="e.g., 1000">
+            <button type="submit">Fetch Photos</button>
+        </form>
+    </div>
+
+    <div class="rover-grid">
+        <div id="rover-3d-container"></div>
+        <div class="photo-gallery">
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% elif photos %}
+                {% for photo in photos %}
+                    <div class="photo-item">
+                        <img src="{{ photo.img_src }}" alt="Mars Rover Photo">
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No photos found for the selected criteria.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+    let scene, camera, renderer, controls, roverModel;
+    const container = document.getElementById('rover-3d-container');
+
+    const ROVER_MODELS = {
+        'curiosity': "{% static '24584_Curiosity_static.glb' %}",
+        'opportunity': "{% static '24883_MER_static.glb' %}",
+        'spirit': "{% static '24883_MER_static.glb' %}",
+        'perseverance': "{% static '25042_Perseverance.glb' %}"
+    };
+
+    const selectedRover = "{{ selected_rover|default:'curiosity' }}";
+
+    function init3DScene() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+
+        // Ground
+        // Fallback to basic color if texture is missing
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 }); // SaddleBrown as Mars fallback
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+
+        // Load Rover Model
+        const loader = new THREE.GLTFLoader();
+        const modelUrl = ROVER_MODELS[selectedRover] || ROVER_MODELS['curiosity'];
+
+        loader.load(modelUrl, function(gltf) {
+            roverModel = gltf.scene;
+
+            // Adjust scaling and positioning based on which model it is, since NASA models vary in scale
+            if (selectedRover === 'curiosity') {
+                roverModel.scale.set(0.01, 0.01, 0.01);
+            } else if (selectedRover === 'opportunity' || selectedRover === 'spirit') {
+                 roverModel.scale.set(0.05, 0.05, 0.05);
+            } else if (selectedRover === 'perseverance') {
+                roverModel.scale.set(0.01, 0.01, 0.01);
+            } else {
+                roverModel.scale.set(0.1, 0.1, 0.1);
+            }
+
+            roverModel.position.y = 0;
+            scene.add(roverModel);
+        }, undefined, function(error) {
+            console.error("Error loading model:", error);
+            // Fallback
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshStandardMaterial({color: 0x888888});
+            roverModel = new THREE.Mesh(geometry, material);
+            roverModel.position.y = 0.25;
+            scene.add(roverModel);
+        });
+
+
+        camera.position.set(2, 2, 3);
+        controls.target.set(0, 0.5, 0);
+
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        if (container && camera && renderer) {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+    });
+
+    init3DScene();
+</script>
+{% endblock %}

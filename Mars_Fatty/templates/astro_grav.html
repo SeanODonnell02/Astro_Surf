@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+
+{% block title %}Astro Grav Calculator | astroSurf{% endblock %}
+
+{% block extra_style %}
+<style>
+    .result-container {
+        position: relative;
+        overflow: hidden;
+        background: rgba(0, 212, 255, 0.03);
+        padding: 1.5rem !important;
+        border: 1px dashed var(--border-bright);
+        animation: border-glow 4s infinite;
+    }
+    @keyframes border-glow {
+        0%, 100% { border-color: var(--border-bright); box-shadow: none; }
+        50% { border-color: var(--accent-cyan); box-shadow: inset 0 0 15px rgba(0, 212, 255, 0.1); }
+    }
+    .result-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+            linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+        background-size: 20px 20px;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .result-container::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to bottom, transparent, var(--accent-cyan), transparent);
+        opacity: 0.3;
+        animation: scan-vertical 4s linear infinite;
+        pointer-events: none;
+    }
+    .mars-accent {
+        animation: data-glitch 3s infinite;
+    }
+    .status-complete {
+        animation: flicker 3s infinite;
+    }
+    .status-standby {
+        animation: flicker 5s infinite;
+        opacity: 0.8;
+    }
+    .glitch-text:hover {
+        animation: text-glitch 0.2s infinite;
+        color: var(--accent-cyan) !important;
+    }
+
+    /* Terminal / CRT title animation */
+    .terminal-title {
+        font-family: var(--font-mono);
+        color: var(--mars-orange);
+        letter-spacing: 2px;
+        font-size: 1.1rem;
+        position: relative;
+        display: inline-block;
+        overflow: hidden;
+        animation: crt-flicker 3s infinite;
+    }
+    .terminal-title .typewriter {
+        display: inline-block;
+        white-space: nowrap;
+        overflow: hidden;
+        animation: typing 2.5s steps(28,end) 1;
+        vertical-align: middle;
+    }
+    .terminal-title .cursor {
+        display: inline-block;
+        margin-left: 6px;
+        color: var(--accent-cyan);
+        opacity: 0.95;
+        animation: blink 1s step-end infinite;
+    }
+    @keyframes typing {
+        from { width: 0; }
+        to { width: 100%; }
+    }
+    @keyframes blink {
+        50% { opacity: 0; }
+    }
+    @keyframes crt-flicker {
+        0% { opacity: 0.98; text-shadow: 0 0 6px rgba(255,107,53,0.6); }
+        30% { opacity: 0.9; text-shadow: 0 0 10px rgba(255,107,53,0.35); }
+        60% { opacity: 0.94; text-shadow: 0 0 4px rgba(255,107,53,0.5); }
+        100% { opacity: 0.98; }
+    }
+
+    @keyframes text-glitch {
+        0% { transform: translate(2px, 0); text-shadow: 2px 0 var(--cyber-pink), -2px 0 var(--accent-cyan); }
+        25% { transform: translate(-2px, 0); text-shadow: -2px 0 var(--cyber-pink), 2px 0 var(--accent-cyan); }
+        50% { transform: translate(2px, 0); text-shadow: 2px 0 var(--cyber-pink), -2px 0 var(--accent-cyan); }
+        75% { transform: translate(-2px, 0); text-shadow: -2px 0 var(--cyber-pink), 2px 0 var(--accent-cyan); }
+        100% { transform: translate(0); }
+    }
+    @keyframes scan-vertical {
+        0% { top: -10%; }
+        100% { top: 110%; }
+    }
+    @keyframes data-glitch {
+        0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { 
+            opacity: 1; 
+            transform: translate(0); 
+            text-shadow: 2px 0 var(--mars-orange), -2px 0 var(--accent-amber); 
+        }
+        20%, 21.999%, 63%, 63.999%, 65%, 69.999% { 
+            opacity: 0.4; 
+            transform: translate(-2px, 1px); 
+            text-shadow: -2px 0 var(--mars-orange), 2px 0 var(--accent-amber); 
+        }
+    }
+    @keyframes flicker {
+        0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; }
+        20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.4; }
+    }
+    select {
+        background-color: var(--bg-void);
+        border: 1px solid var(--border-dim);
+        color: var(--nominal);
+        font-family: var(--font-mono);
+        padding: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 4px;
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+        transition: border-color 0.2s;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300d4ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1em;
+        cursor: pointer;
+    }
+    select:focus {
+        outline: none;
+        border-color: var(--accent-cyan);
+    }
+    option {
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+    }
+
+    #planet-3d-container {
+        width: 100%;
+        height: 400px; /* Adjust height as needed */
+        background-color: var(--bg-void);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="panel">
+        <h2 class="glitch-text terminal-title">
+            <span class="typewriter">[ ASTRO_GRAV_CALCULATOR ]</span>
+            {% if astro_weight is not None %}
+                <span class="status-complete" style="color: var(--nominal); font-size: 0.7rem; text-shadow: var(--text-glow); margin-left: auto; letter-spacing: 1px;">● CALCULATION_COMPLETE</span>
+            {% else %}
+                <span class="status-standby" style="color: var(--accent-amber); font-size: 0.7rem; margin-left: auto; letter-spacing: 1px;">● STANDBY</span>
+            {% endif %}
+        </h2>
+        
+        {% if error_message %}
+            <p class="error" style="margin-top: 1rem;">{{ error_message }}</p>
+        {% endif %}
+
+        <form method="post" style="margin-top: 1.5rem; margin-bottom: 1rem;">
+            {% csrf_token %}
+            <label for="celestial_body">Select Celestial Body:</label>
+            <select id="celestial_body" name="celestial_body">
+                {% for body, data in gravity_data.items %}
+                    <option value="{{ body }}" {% if selected_body == body %}selected{% endif %}>{{ body }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="earth_weight">Enter your weight on Earth (lbs):</label>
+            <input type="number" step="any" id="earth_weight" name="earth_weight" value="{{ earth_weight|default:'' }}" required>
+            
+            <button type="submit" style="background-color: transparent; border: 1px solid var(--accent-cyan); color: var(--accent-cyan); font-family: var(--font-mono); padding: 10px; width: 100%; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">Initialize Calculation</button>
+        </form>
+
+        <h2 class="glitch-text">[ AstroGrav Results ]</h2>
+        <div class="result-container" style="border-top: none; margin-top: 1rem; margin-bottom: 1rem;">
+            {% if astro_weight is not None %}
+                <p class="context-text" style="position: relative; z-index: 1;">Earth Weight: <strong style="font-size: 1.1rem; display: inline; margin-top: 0;">{{ earth_weight }} lbs</strong></p>
+                <p class="context-text" style="margin-top: 0.5rem; position: relative; z-index: 1;">Astro Grav Weight (<span id="result-body-name">{{ selected_body }}</span>): <span class="mars-accent" style="font-size: 1.8rem; display: inline; margin-top: 0;">{{ astro_weight }} lbs</span></p>
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 1.5rem; position: relative; z-index: 1;">
+                    <p class="context-text status-complete" style="font-size: 0.6rem; opacity: 0.5; font-family: var(--font-mono);">CALC_ID: MS-{{ earth_weight|stringformat:".0f" }}</p>
+                </div>
+            {% else %}
+                <p class="context-text" style="font-style: italic; opacity: 0.7; position: relative; z-index: 1;">No data available. Please initialize calculation above.</p>
+            {% endif %}
+        </div>
+
+        <div id="planet-3d-container"></div>
+
+        <h2 class="glitch-text">[ GRAVITY_DATA ]</h2>
+        <div style="margin-top: 1rem; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">
+            <p>EARTH_G: 9.807 m/s²</p>
+            <p><span id="data-body-name">{{ selected_body }}</span>_G: <span id="data-body-g">{{ current_data.g }}</span> m/s²</p>
+            <p>FACTOR: <span id="data-body-factor">{{ current_data.factor }}</span>x</p>
+        </div>
+
+        <h2 class="glitch-text">[ find out more info on <span id="info-body-name">{{ selected_body }}</span> ]</h2>
+        <div style="margin-top: 1rem;">
+            <a id="data-body-url" href="{{ current_data.nasa_url }}" target="_blank" class="nav-link" style="font-size: 0.7rem; border: 1px solid var(--border-dim); text-align: center; display: block;">NASA_ASTRO_DATA</a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    // Data passed from Django context
+    let SELECTED_BODY = "{{ selected_body|default:'EARTH' }}";
+    const ASTRO_WEIGHT = parseFloat("{{ astro_weight|default:'0' }}");
+    const GRAVITY_DATA = {
+        {% for body, data in gravity_data.items %}
+            "{{ body }}": {
+                "g": {{ data.g }},
+                "factor": {{ data.factor }},
+                "nasa_url": "{{ data.nasa_url }}"
+            }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    // Planet texture and size data
+    const PLANET_VISUAL_DATA = {
+        "MERCURY": { texture: "https://www.solarsystemscope.com/textures/download/2k_mercury.jpg", bumpMap: null, radiusScale: 0.38 },
+        "VENUS": { texture: "https://www.solarsystemscope.com/textures/download/2k_venus_atmosphere.jpg", bumpMap: null, radiusScale: 0.95 },
+        "EARTH": { texture: "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg", bumpMap: "https://unpkg.com/three-globe/example/img/earth-topology.png", radiusScale: 1.0 },
+        "MARS": { texture: "https://www.solarsystemscope.com/textures/download/2k_mars.jpg", bumpMap: null, radiusScale: 0.53 },
+        "JUPITER": { texture: "https://www.solarsystemscope.com/textures/download/2k_jupiter.jpg", bumpMap: null, radiusScale: 11.2 },
+        "SATURN": { texture: "https://www.solarsystemscope.com/textures/download/2k_saturn.jpg", bumpMap: null, radiusScale: 9.45 },
+        "URANUS": { texture: "https://www.solarsystemscope.com/textures/download/2k_uranus.jpg", bumpMap: null, radiusScale: 4.0 },
+        "NEPTUNE": { texture: "https://www.solarsystemscope.com/textures/download/2k_neptune.jpg", bumpMap: null, radiusScale: 3.88 },
+        "MOON": { texture: "https://www.solarsystemscope.com/textures/download/2k_moon.jpg", bumpMap: null, radiusScale: 0.27 },
+        "PLUTO": { texture: "https://www.solarsystemscope.com/textures/download/2k_pluto.jpg", bumpMap: null, radiusScale: 0.18 },
+        "SUN": { texture: "https://www.solarsystemscope.com/textures/download/2k_sun.jpg", bumpMap: null, radiusScale: 20.0 }, // Scaled down for visibility
+        "BLACK_HOLE": { texture: null, color: 0x000000, bumpMap: null, radiusScale: 5.0 } // Represented as a black sphere
+    };
+
+    let scene, camera, renderer, controls, planetMesh, weightPin, accretionDisk;
+    const loader = new THREE.TextureLoader();
+    const container = document.getElementById('planet-3d-container');
+
+    function init3DScene() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.minDistance = 2;
+        controls.maxDistance = 30; // Increased to allow viewing larger bodies
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xaaaaaa));
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5).normalize();
+        scene.add(directionalLight);
+
+        camera.position.z = 5;
+
+        renderPlanet(SELECTED_BODY, ASTRO_WEIGHT);
+        animate();
+    }
+
+    function renderPlanet(bodyName, weight) {
+        // Clear previous planet, pin, and disk
+        if (planetMesh) {
+            scene.remove(planetMesh);
+            planetMesh.geometry.dispose();
+            if (planetMesh.material.map) planetMesh.material.map.dispose();
+            if (planetMesh.material.bumpMap) planetMesh.material.bumpMap.dispose();
+            planetMesh.material.dispose();
+        }
+        if (weightPin) {
+            scene.remove(weightPin);
+            weightPin.geometry.dispose();
+            weightPin.material.dispose();
+            weightPin = null;
+        }
+        if (accretionDisk) {
+            scene.remove(accretionDisk);
+            accretionDisk.geometry.dispose();
+            accretionDisk.material.dispose();
+            accretionDisk = null;
+        }
+
+        const data = PLANET_VISUAL_DATA[bodyName] || PLANET_VISUAL_DATA["EARTH"];
+
+        // Dynamic camera distance based on planet size
+        let planetRadius = 1 * data.radiusScale;
+
+        // Cap the visual radius so huge things (like Sun) still fit on screen
+        if (planetRadius > 10) {
+            planetRadius = 10;
+        }
+
+        camera.position.z = planetRadius * 3;
+        if(camera.position.z < 3) camera.position.z = 3;
+
+        let planetMaterial;
+
+        if (bodyName === "BLACK_HOLE") {
+            planetMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+            // Add an accretion disk for the black hole
+            const diskGeometry = new THREE.RingGeometry(planetRadius * 1.2, planetRadius * 3, 64);
+
+            // Create a gradient-like texture for the disk
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 1;
+            const context = canvas.getContext('2d');
+            const gradient = context.createLinearGradient(0, 0, 256, 0);
+            gradient.addColorStop(0, 'rgba(255, 100, 0, 0)');
+            gradient.addColorStop(0.2, 'rgba(255, 200, 0, 1)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(1, 'rgba(0, 100, 255, 0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 256, 1);
+
+            const diskTexture = new THREE.CanvasTexture(canvas);
+
+            const diskMaterial = new THREE.MeshBasicMaterial({
+                map: diskTexture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial);
+            accretionDisk.rotation.x = Math.PI / 3;
+            scene.add(accretionDisk);
+
+        } else if (bodyName === "SUN") {
+             planetMaterial = new THREE.MeshBasicMaterial({
+                map: loader.load(data.texture)
+            });
+        } else {
+             planetMaterial = new THREE.MeshPhongMaterial({
+                map: loader.load(data.texture),
+                bumpMap: data.bumpMap ? loader.load(data.bumpMap) : null,
+                bumpScale: 0.05,
+                shininess: 10
+            });
+        }
+
+        planetMesh = new THREE.Mesh(new THREE.SphereGeometry(planetRadius, 64, 64), planetMaterial);
+        scene.add(planetMesh);
+
+        // Add weight indicator (pin) only if weight > 0 and it's not a black hole/sun
+        if (weight > 0 && bodyName !== "BLACK_HOLE" && bodyName !== "SUN") {
+            const pinHeight = planetRadius * 0.2; // Scale pin height by planet size
+            const pinGeometry = new THREE.CylinderGeometry(planetRadius * 0.02, planetRadius * 0.05, pinHeight, 16);
+            const pinMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff }); // Cyber-pink
+            weightPin = new THREE.Mesh(pinGeometry, pinMaterial);
+
+            // Position pin on top of the planet
+            weightPin.position.set(0, planetRadius + (pinHeight / 2), 0);
+            planetMesh.add(weightPin); // Add pin as child of planet for rotation
+        }
+
+        // Reset controls target
+        controls.target.set(0,0,0);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        if (planetMesh) {
+            planetMesh.rotation.y += 0.002; // Continuous rotation
+        }
+        if (accretionDisk) {
+             accretionDisk.rotation.z -= 0.01;
+        }
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        if (container && camera && renderer) {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        init3DScene();
+
+        // Listen for changes on the select dropdown
+        const selectElement = document.getElementById('celestial_body');
+
+        selectElement.addEventListener('change', (event) => {
+            const newBody = event.target.value;
+            SELECTED_BODY = newBody;
+
+            // Update the 3D model
+            renderPlanet(newBody, ASTRO_WEIGHT);
+
+            // Optionally, update the data readouts on the page immediately
+            // (Note: ASTRO_WEIGHT won't update until the form is submitted)
+            const bodyData = GRAVITY_DATA[newBody];
+            if(bodyData) {
+                document.getElementById('data-body-name').textContent = newBody;
+                document.getElementById('data-body-g').textContent = bodyData.g;
+                document.getElementById('data-body-factor').textContent = bodyData.factor;
+                document.getElementById('info-body-name').textContent = newBody;
+
+                const urlElem = document.getElementById('data-body-url');
+                if(urlElem) urlElem.href = bodyData.nasa_url;
+
+                const resultNameElem = document.getElementById('result-body-name');
+                if(resultNameElem) resultNameElem.textContent = newBody;
+            }
+        });
+
+        const randomize = (elems, maxDelay=2.5) => {
+            elems.forEach(el => {
+                const d = (Math.random() * maxDelay).toFixed(2) + 's';
+                el.style.animationDelay = d;
+                const base = parseFloat(getComputedStyle(el).animationDuration) || 3;
+                const factor = 1 + (Math.random() - 0.5) * 0.3;
+                el.style.animationDuration = (base * factor).toFixed(2) + 's';
+            });
+        };
+
+        randomize(Array.from(document.querySelectorAll('.mars-accent')));
+        randomize(Array.from(document.querySelectorAll('.status-complete')));
+        randomize(Array.from(document.querySelectorAll('.status-standby')));
+        randomize(Array.from(document.querySelectorAll('.glitch-text')), 1.5);
+    });
+</script>
+{% endblock %}

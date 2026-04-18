@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Simulations | Astro Surf{% endblock %}
+
+{% block extra_style %}
+<style>
+    .games-header {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .games-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .game-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+
+    .game-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.15);
+        border-color: var(--accent-cyan);
+    }
+
+    .game-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--accent-cyan), var(--cyber-pink));
+    }
+
+    .game-title {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        color: var(--accent-cyan);
+        margin: 0 0 10px 0;
+    }
+
+    .game-desc {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+        margin-bottom: 20px;
+    }
+
+    .game-meta {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px dotted var(--border-dim);
+        padding-top: 10px;
+    }
+
+    .game-status {
+        color: var(--nominal);
+    }
+    .game-status.dev {
+        color: var(--accent-amber);
+    }
+
+    .launch-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid var(--accent-cyan);
+        color: var(--accent-cyan);
+        padding: 10px;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        text-decoration: none;
+        border-radius: 3px;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 15px;
+    }
+
+    .launch-btn:hover {
+        background: var(--accent-cyan);
+        color: #000;
+        font-weight: bold;
+        box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    /* Interactive Orbital Simulator Container (Placeholder for now) */
+    #orbit-sim-container {
+        width: 100%;
+        height: 500px;
+        background-color: #000;
+        border: 1px solid var(--border-bright);
+        border-radius: 4px;
+        margin-top: 30px;
+        display: none; /* Hidden until a game is launched */
+        position: relative;
+        overflow: hidden;
+    }
+
+    .sim-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(10, 15, 22, 0.8);
+        border: 1px solid var(--accent-cyan);
+        padding: 15px;
+        font-family: var(--font-mono);
+        color: var(--text-primary);
+        z-index: 10;
+        min-width: 250px;
+    }
+
+    .close-sim {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 32, 64, 0.2);
+        border: 1px solid var(--critical);
+        color: var(--critical);
+        padding: 5px 10px;
+        cursor: pointer;
+        font-family: var(--font-mono);
+        z-index: 10;
+    }
+
+    .close-sim:hover {
+        background: var(--critical);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="games-header">
+        <h2 style="text-shadow: 0 0 10px var(--accent-cyan); display:flex; align-items:center; gap:10px;">
+            <span>TRAINING SIMULATIONS</span>
+        </h2>
+        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">Interactive modules for orbital mechanics and spacecraft operation.</p>
+    </div>
+
+    <!-- The Games Library -->
+    <div class="games-grid" id="games-library">
+        <!-- Game 1 -->
+        <div class="game-card">
+            <h3 class="game-title">Orbital Mechanics 101</h3>
+            <p class="game-desc">Learn the basics of orbital velocity, eccentricity, and inclination by manipulating a satellite's parameters around Earth.</p>
+            <div class="game-meta">
+                <span>DIFFICULTY: NOVICE</span>
+                <span class="game-status">MODULE READY</span>
+            </div>
+            <button class="launch-btn" onclick="launchSim('orbital')">INITIALIZE SIMULATION</button>
+        </div>
+
+        <!-- Game 2 -->
+        <div class="game-card">
+            <h3 class="game-title">Hohmann Transfer</h3>
+            <p class="game-desc">Execute the most fuel-efficient maneuver to transfer a spacecraft between two circular orbits. Time your burns carefully.</p>
+            <div class="game-meta">
+                <span>DIFFICULTY: INTERMEDIATE</span>
+                <span class="game-status dev">IN DEVELOPMENT</span>
+            </div>
+            <button class="launch-btn" style="opacity: 0.5; cursor: not-allowed;" disabled>LOCKED</button>
+        </div>
+
+        <!-- Game 3 -->
+        <div class="game-card" style="border-left-color: var(--mars-orange);">
+            <h3 class="game-title" style="color: var(--mars-orange);">Lunar Landing</h3>
+            <p class="game-desc">Take manual control of the Human Landing System. Manage thrust and RCS to touch down safely at the lunar south pole.</p>
+            <div class="game-meta">
+                <span>DIFFICULTY: EXPERT</span>
+                <span class="game-status dev">IN DEVELOPMENT</span>
+            </div>
+            <button class="launch-btn" style="border-color: var(--mars-orange); color: var(--mars-orange); opacity: 0.5; cursor: not-allowed;" disabled>LOCKED</button>
+        </div>
+    </div>
+
+    <!-- The Interactive Simulation Area (Hidden by default) -->
+    <div id="orbit-sim-container">
+        <button class="close-sim" onclick="closeSim()">TERMINATE SIM</button>
+
+        <div class="sim-overlay">
+            <div style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid var(--border-dim); padding-bottom: 5px;">ORBITAL PARAMETERS</div>
+
+            <div style="margin-bottom: 15px;">
+                <label for="vel-slider" style="font-size: 0.7rem; color: var(--text-dim); display: flex; justify-content: space-between;">
+                    VELOCITY
+                    <span id="vel-val" style="color: var(--nominal);">7.6 km/s</span>
+                </label>
+                <input type="range" id="vel-slider" min="5" max="11" step="0.1" value="7.6" style="width: 100%; margin-top: 5px; accent-color: var(--accent-cyan);">
+            </div>
+
+            <div style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 15px;">
+                <span style="color: var(--accent-amber);">GOAL:</span> Adjust velocity to achieve a perfectly circular orbit (Eccentricity ~ 0.0).
+            </div>
+
+            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-dim); font-size: 0.7rem;">
+                <div>ECCENTRICITY: <span id="ecc-val" style="color: var(--nominal);">0.00</span></div>
+                <div>STATUS: <span id="orbit-status" class="blink" style="color: var(--nominal);">CIRCULAR (NOMINAL)</span></div>
+            </div>
+        </div>
+
+        <!-- Three.js Canvas will be injected here -->
+        <div id="three-canvas" style="width: 100%; height: 100%;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    const library = document.getElementById('games-library');
+    const simContainer = document.getElementById('orbit-sim-container');
+
+    let scene, camera, renderer, controls, earth, satellite, orbitPath;
+    let animationId;
+
+    // Physics variables
+    const G = 6.67430e-11;
+    const M_earth = 5.972e24;
+    const GM = G * M_earth;
+
+    // Scale down for visualization (1 unit = 1000km)
+    const earthRadius = 6.371;
+    let altitude = 1.0; // 1000km above surface
+    let r0 = earthRadius + altitude;
+
+    let velocity = 7.6; // km/s (roughly circular at this altitude)
+    let theta = 0;
+
+    function launchSim(gameId) {
+        if (gameId === 'orbital') {
+            library.style.display = 'none';
+            simContainer.style.display = 'block';
+            initOrbitalSim();
+        }
+    }
+
+    function closeSim() {
+        simContainer.style.display = 'none';
+        library.style.display = 'grid';
+
+        // Clean up Three.js
+        if (animationId) cancelAnimationFrame(animationId);
+        if (renderer) {
+            document.getElementById('three-canvas').innerHTML = '';
+            renderer.dispose();
+        }
+    }
+
+    function initOrbitalSim() {
+        const canvasContainer = document.getElementById('three-canvas');
+        canvasContainer.innerHTML = ''; // Clear previous
+
+        scene = new THREE.Scene();
+
+        // Basic starfield
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = new Float32Array(3000);
+        for(let i=0; i<3000; i++) {
+            starPos[i] = (Math.random() - 0.5) * 100;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.05}));
+        scene.add(stars);
+
+        camera = new THREE.PerspectiveCamera(45, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+        camera.position.set(0, 15, 20);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+        canvasContainer.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Earth
+        scene.add(new THREE.AmbientLight(0x404040));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(10, 10, 10);
+        scene.add(dirLight);
+
+        // Simple Earth (Wireframe to look "simulated")
+        const earthGeo = new THREE.SphereGeometry(earthRadius, 32, 32);
+        const earthMat = new THREE.MeshBasicMaterial({ color: 0x0044aa, wireframe: true, transparent: true, opacity: 0.3 });
+        earth = new THREE.Mesh(earthGeo, earthMat);
+
+        // Solid core
+        const core = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 0.98, 32, 32), new THREE.MeshPhongMaterial({color: 0x001133}));
+        earth.add(core);
+        scene.add(earth);
+
+        // Satellite
+        const satGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const satMat = new THREE.MeshBasicMaterial({ color: 0x00ff9c });
+        satellite = new THREE.Mesh(satGeo, satMat);
+        scene.add(satellite);
+
+        // Orbit Path Line
+        const pathGeo = new THREE.BufferGeometry();
+        const pathMat = new THREE.LineBasicMaterial({ color: 0xffb800, transparent: true, opacity: 0.5 });
+        orbitPath = new THREE.Line(pathGeo, pathMat);
+        scene.add(orbitPath);
+
+        // UI Listeners
+        const velSlider = document.getElementById('vel-slider');
+        const velVal = document.getElementById('vel-val');
+
+        velSlider.addEventListener('input', (e) => {
+            velocity = parseFloat(e.target.value);
+            velVal.textContent = velocity.toFixed(1) + ' km/s';
+            updateOrbitPath();
+        });
+
+        updateOrbitPath();
+        animateSim();
+    }
+
+    function calculateOrbitPoints(v0) {
+        // Very simplified 2D Keplerian orbit approximation for visual purposes
+        // v0 is velocity at periapsis (r0)
+
+        const points = [];
+        const mu = 398600; // Earth's standard gravitational parameter km^3/s^2
+
+        // Convert to simulation scale (roughly)
+        const v = v0 * 1000;
+        const r = r0 * 1000000;
+
+        // Specific orbital energy
+        const E = (v*v)/2 - GM/r;
+
+        // Semi-major axis
+        const a = -GM / (2*E);
+
+        // Angular momentum
+        const h = r * v;
+
+        // Eccentricity
+        let e = Math.sqrt(1 + (2*E*h*h)/(GM*GM));
+
+        // Cap eccentricity for visual sanity if it escapes
+        if (e >= 1.0) e = 0.99;
+
+        const a_sim = (a / 1000000); // Back to sim scale
+
+        // Update UI
+        const eccElem = document.getElementById('ecc-val');
+        const statusElem = document.getElementById('orbit-status');
+
+        eccElem.textContent = e.toFixed(2);
+
+        if (e < 0.05) {
+            eccElem.style.color = "var(--nominal)";
+            statusElem.textContent = "CIRCULAR (NOMINAL)";
+            statusElem.style.color = "var(--nominal)";
+        } else if (e < 0.5) {
+            eccElem.style.color = "var(--accent-amber)";
+            statusElem.textContent = "ELLIPTICAL (STABLE)";
+            statusElem.style.color = "var(--accent-amber)";
+        } else {
+            eccElem.style.color = "var(--critical)";
+            statusElem.textContent = "HIGHLY ELLIPTICAL (WARNING)";
+            statusElem.style.color = "var(--critical)";
+        }
+
+        // Draw ellipse
+        for (let i = 0; i <= 64; i++) {
+            const angle = (i / 64) * Math.PI * 2;
+            // Orbit equation r(theta) = (a * (1 - e^2)) / (1 + e * cos(theta))
+            const r_theta = (a_sim * (1 - e*e)) / (1 + e * Math.cos(angle));
+
+            // If it dips below earth, just let it draw through for visual feedback
+            points.push(new THREE.Vector3(r_theta * Math.cos(angle), 0, r_theta * Math.sin(angle)));
+        }
+
+        return { points, a_sim, e };
+    }
+
+    let currentOrbitData = null;
+
+    function updateOrbitPath() {
+        currentOrbitData = calculateOrbitPoints(velocity);
+        orbitPath.geometry.setFromPoints(currentOrbitData.points);
+    }
+
+    function animateSim() {
+        animationId = requestAnimationFrame(animateSim);
+
+        if (currentOrbitData) {
+            // Move satellite along path
+            theta += 0.01; // Constant angular velocity for simplicity in this visual sim
+            if (theta > Math.PI * 2) theta = 0;
+
+            const r_theta = (currentOrbitData.a_sim * (1 - currentOrbitData.e*currentOrbitData.e)) / (1 + currentOrbitData.e * Math.cos(theta));
+
+            satellite.position.x = r_theta * Math.cos(theta);
+            satellite.position.z = r_theta * Math.sin(theta);
+
+            // Check collision with earth
+            if (r_theta < earthRadius) {
+                 document.getElementById('orbit-status').textContent = "IMPACT DETECTED";
+                 document.getElementById('orbit-status').style.color = "var(--critical)";
+            }
+        }
+
+        earth.rotation.y += 0.002;
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        if (camera && renderer && simContainer.style.display !== 'none') {
+            const canvasContainer = document.getElementById('three-canvas');
+            camera.aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+        }
+    });
+</script>
+{% endblock %}
