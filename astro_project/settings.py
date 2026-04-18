@@ -158,8 +158,6 @@ if config.is_valid_platform():
 
     if hasattr(config, 'appDir'):
         STATIC_ROOT = Path(config.appDir) / 'static'
-    if config.in_build():
-        SECRET_KEY = config.project_entropy
 
     if not config.in_build():
         db_settings = config.credentials('database')
