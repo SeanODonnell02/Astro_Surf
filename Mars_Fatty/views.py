@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 import requests
 from geopy.geocoders import Nominatim
@@ -6,13 +6,21 @@ from geopy.distance import geodesic
 from django.conf import settings
 import datetime
 
+def root_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+    return redirect('accounts:login')
+
 @login_required
 def home_view(request):
     """
     The new landing page.
     A clean, portfolio-worthy introduction to the AstroSurf application.
     """
-    return render(request, 'home.html')
+    context = {
+        'NASA_API_KEY': settings.NASA_API_KEY
+    }
+    return render(request, 'home.html', context)
 
 @login_required
 def mission_control_view(request):

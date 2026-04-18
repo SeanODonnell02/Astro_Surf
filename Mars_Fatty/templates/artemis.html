@@ -1172,7 +1172,7 @@ function animate() {
     const tangent = trajCurve.getTangentAt(progress).normalize();
     orion.position.copy(pos);
 
-    // Orient ship along tangent (ship's +Y points along travel direction)
+    // Orient ship along tangent (ship's +Y is "up/forward" relative to path)
     tmpLook.copy(pos).add(tangent);
     // We want the CM cone (+Y) to point along tangent
     const up = new THREE.Vector3(0, 0, 1);

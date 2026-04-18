@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from platformshconfig import Config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,7 @@ SECRET_KEY = 'django-insecure-lltl@24mn=pg_k@nk=ga$va4j(5na*zo!jfqn@84$x1wdy#aqo
 
 # NASA API Key for APOD
 # Get your key from https://api.nasa.gov/
-NASA_API_KEY = '73e03fce-6f99-4595-86b4-20d0d45178f4' # Replace with your actual NASA API key
+NASA_API_KEY = 'AOEdg04xAbOepJl4LpoBePCifgwnLMlDpl3hbufR'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -123,7 +124,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -135,3 +137,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 LOGIN_URL = 'accounts:login'
+
+config = Config()
+if config.is_valid_platform():
+    ALLOWED_HOSTS.append('.platformsh.site')
+
+    if hasattr(config, 'appDir'):
+        STATIC_ROOT = Path(config.appDir) / 'static'
+    if config.in_build():
+        SECRET_KEY = config.project_entropy
+
+    if not config.in_build():
+        db_settings = config.credentials('database')
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_settings.get('path'),
+            'USER': db_settings.get('username'),
+            'PASSWORD': db_settings.get('password'),
+            'HOST': db_settings.get('host'),
+            'PORT': db_settings.get('port'),
+        }

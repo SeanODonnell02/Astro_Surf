@@ -1,0 +1,10 @@
+    # .platform/routes.yaml
+
+    "https://{default}/":
+      type: upstream
+      upstream: "astroSurf:http"
+
+    "http://{default}/":
+      type: redirect
+      to: "https://{default}/"
+    

@@ -5,93 +5,287 @@
 
 {% block extra_style %}
 <style>
-    .rover-grid {
+    .rover-container {
         display: grid;
-        grid-template-columns: 1fr 1.5fr;
+        grid-template-columns: 1.2fr 1fr;
         gap: 20px;
-        height: 80vh;
+        margin-top: 20px; /* Pushes the component down */
     }
+
     #rover-3d-container {
         width: 100%;
-        height: 100%;
-        background-color: var(--bg-void);
-        border: 1px solid var(--border-dim);
-        border-radius: 4px;
+        height: 600px; /* Giving it a fixed height */
+        background: linear-gradient(135deg, rgba(0, 10, 20, 0.9) 0%, rgba(10, 5, 20, 0.9) 100%);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 8px;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.1), inset 0 0 30px rgba(255, 0, 150, 0.05);
     }
-    .photo-gallery {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 10px;
+
+    .rover-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-height: 650px; /* To match the viewer height + hint */
         overflow-y: auto;
-        height: 100%;
-        padding: 10px;
-        background: rgba(0,0,0,0.2);
-        border: 1px solid var(--border-dim);
-        border-radius: 4px;
     }
+
+    .control-panel {
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(10, 15, 22, 0.7) 0%, rgba(15, 20, 28, 0.7) 100%);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .control-panel:hover {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+        border-color: rgba(0, 212, 255, 0.4);
+    }
+
+    .control-panel h3 {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--accent-cyan);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin: 0 0 15px 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .form-group select,
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 4px;
+        color: var(--nominal);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+        outline: none;
+        background: rgba(0, 212, 255, 0.1);
+        border-color: rgba(0, 212, 255, 0.5);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.15);
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .action-btn {
+        padding: 10px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(255, 0, 150, 0.05) 100%);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        color: var(--accent-cyan);
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+        background: var(--accent-cyan);
+        color: #000;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .action-btn:active {
+        transform: scale(0.95);
+    }
+
+    .photo-gallery {
+        max-height: 400px;
+        overflow-y: auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        border: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    .photo-item {
+        position: relative;
+        overflow: hidden;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        aspect-ratio: 1;
+        cursor: pointer;
+    }
+
     .photo-item img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        border-radius: 4px;
-        border: 1px solid var(--border-bright);
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: all 0.3s ease;
     }
-    .photo-item img:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 15px var(--accent-cyan);
+
+    .photo-item:hover img {
+        transform: scale(1.1);
+        filter: brightness(1.2);
     }
-    .control-panel {
-        padding: 15px;
-        background: var(--bg-surface);
-        border: 1px solid var(--border-dim);
+
+    .photo-item::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, transparent 100%);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .photo-item:hover::after {
+        opacity: 1;
+    }
+
+    .rover-info {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .rover-info strong {
+        color: var(--accent-cyan);
+    }
+
+    /* Moved hint to be outside and below the 3D container */
+    .canvas-hint-wrapper {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        color: var(--text-secondary);
+        padding: 10px;
         border-radius: 4px;
-        margin-bottom: 15px;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        margin-top: 10px; /* Spacing between viewer and hint */
+        max-width: 200px;
+    }
+
+    @media (max-width: 1400px) {
+        .rover-container {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+        #rover-3d-container {
+            height: 500px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="panel">
-    <h2>Mars Rover Command</h2>
-    <div class="control-panel">
-        <form method="get">
-            <label for="rover">Select Rover:</label>
-            <select id="rover" name="rover">
-                <option value="curiosity" {% if selected_rover == 'curiosity' %}selected{% endif %}>Curiosity</option>
-                <option value="opportunity" {% if selected_rover == 'opportunity' %}selected{% endif %}>Opportunity / Spirit</option>
-                <option value="perseverance" {% if selected_rover == 'perseverance' %}selected{% endif %}>Perseverance</option>
-            </select>
-            <label for="sol">Martian Sol (Day):</label>
-            <input type="number" id="sol" name="sol" value="{{ selected_sol|default:'' }}" placeholder="e.g., 1000">
-            <button type="submit">Fetch Photos</button>
-        </form>
-    </div>
+    <h2 style="margin-bottom: 20px; color: var(--accent-cyan); text-shadow: 0 0 10px var(--accent-cyan);">
+        [ MARS ROVER COMMAND CENTER ]
+    </h2>
 
-    <div class="rover-grid">
-        <div id="rover-3d-container"></div>
-        <div class="photo-gallery">
-            {% if error %}
-                <p class="error">{{ error }}</p>
-            {% elif photos %}
-                {% for photo in photos %}
-                    <div class="photo-item">
-                        <img src="{{ photo.img_src }}" alt="Mars Rover Photo">
+    <div class="rover-container">
+        <!-- Column 1: 3D Viewer and Hint -->
+        <div>
+            <div id="rover-3d-container">
+                <!-- Canvas will be inserted here by three.js -->
+            </div>
+            <div class="canvas-hint-wrapper">
+                <strong>ROVER CONTROL:</strong><br>
+                🖱️ Drag to rotate<br>
+                🔄 Scroll to zoom<br>
+                Double-click to focus
+            </div>
+        </div>
+
+        <!-- Column 2: Controls Panel -->
+        <div class="rover-controls">
+            <!-- ROVER SELECTOR -->
+            <div class="control-panel">
+                <h3>[ ROVER SELECTION ]</h3>
+                <div class="form-group">
+                    <label>Active Rover</label>
+                    <select id="rover-select" onchange="changeRover(this.value)">
+                        <option value="curiosity">Curiosity (Gale Crater)</option>
+                        <option value="perseverance">Perseverance (Jezero Crater)</option>
+                        <option value="opportunity">Opportunity (Endeavour Crater)</option>
+                    </select>
+                </div>
+                <div class="rover-info">
+                    <div id="rover-status">
+                        <strong>STATUS:</strong> ACTIVE<br>
+                        <strong>LOCATION:</strong> Gale Crater<br>
+                        <strong>OPERATIONAL:</strong> 4,365+ sols<br>
+                        <strong>DISTANCE:</strong> 28 km traveled
                     </div>
-                {% endfor %}
-            {% else %}
-                <p>No photos found for the selected criteria.</p>
-            {% endif %}
+                    <a id="more-info-link" href="#" target="_blank" class="action-btn" style="margin-top: 10px; display: block; text-align: center;">[ MORE INFO ]</a>
+                </div>
+            </div>
+
+            <!-- SOL SELECTOR -->
+            <div class="control-panel">
+                <h3>[ MARTIAN SOL SELECTION ]</h3>
+                <div class="form-group">
+                    <label>Enter Sol (Day)</label>
+                    <input type="number" id="sol-input" placeholder="e.g., 1000" value="1000">
+                </div>
+                <div class="button-group">
+                    <button class="action-btn" onclick="fetchPhotos()">[ FETCH PHOTOS ]</button>
+                    <button class="action-btn" onclick="randomSol()">[ RANDOM SOL ]</button>
+                </div>
+            </div>
+
+            <!-- CAMERA CONTROLS -->
+            <div class="control-panel">
+                <h3>[ CAMERA CONTROLS ]</h3>
+                <div class="button-group">
+                    <button class="action-btn" onclick="resetCamera()">[ AUTO-FOCUS ]</button>
+                    <button class="action-btn" onclick="zoomIn()">[ ZOOM IN ]</button>
+                </div>
+                <div class="button-group" style="margin-top: 10px;">
+                    <button class="action-btn" onclick="rotateLeft()">[ ROTATE LEFT ]</button>
+                    <button class="action-btn" onclick="zoomOut()">[ ZOOM OUT ]</button>
+                </div>
+            </div>
+
+            <!-- PHOTOS GALLERY -->
+            <div class="control-panel">
+                <h3>[ MISSION PHOTOS ]</h3>
+                <div id="photo-gallery" class="photo-gallery">
+                    <p style="grid-column: 1/-1; color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.75rem;">
+                        No photos loaded. Select a Sol and fetch photos.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-{{ block.super }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -101,73 +295,203 @@
     const container = document.getElementById('rover-3d-container');
 
     const ROVER_MODELS = {
-        'curiosity': "{% static '24584_Curiosity_static.glb' %}",
-        'opportunity': "{% static '24883_MER_static.glb' %}",
-        'spirit': "{% static '24883_MER_static.glb' %}",
-        'perseverance': "{% static '25042_Perseverance.glb' %}"
+        'curiosity': '{% static "24584_Curiosity_static.glb" %}',
+        'perseverance': '{% static "25042_Perseverance.glb" %}',
+        'opportunity': '{% static "24883_MER_static.glb" %}'
     };
 
-    const selectedRover = "{{ selected_rover|default:'curiosity' }}";
+    const ROVER_INFO = {
+        'curiosity': {
+            status: 'ACTIVE',
+            location: 'Gale Crater',
+            operational: '4,365+ sols',
+            distance: '28 km traveled',
+            url: 'https://mars.nasa.gov/msl/'
+        },
+        'perseverance': {
+            status: 'ACTIVE',
+            location: 'Jezero Crater',
+            operational: '650+ sols',
+            distance: '21 km traveled',
+            url: 'https://mars.nasa.gov/mars2020/'
+        },
+        'opportunity': {
+            status: 'INACTIVE',
+            location: 'Endeavour Crater',
+            operational: '5,111 sols (2004-2018)',
+            distance: '45 km traveled',
+            url: 'https://mars.nasa.gov/mer/'
+        }
+    };
+
+    let currentRover = 'curiosity';
 
     function init3DScene() {
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        scene.background = new THREE.Color(0x000000);
+
+        // Lighting setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight1.position.set(5, 10, 7);
+        scene.add(directionalLight1);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffa500, 0.4);
+        directionalLight2.position.set(-5, 5, -7);
+        scene.add(directionalLight2);
+
+        // Camera setup with better defaults
+        camera = new THREE.PerspectiveCamera(
+            60,
+            container.clientWidth / container.clientHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(3, 2.5, 3);
+
+        // Renderer setup
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
 
+        // OrbitControls with auto-zoom
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 0;
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.0;
+        controls.minDistance = 1;
+        controls.maxDistance = 15;
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
-
-        // Ground
-        // Fallback to basic color if texture is missing
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 }); // SaddleBrown as Mars fallback
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), groundMaterial);
+        // Mars ground
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0xc27335,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), groundMaterial);
         ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
         scene.add(ground);
 
-        // Load Rover Model
+        // Load initial rover
+        loadRover(currentRover);
+        updateRoverInfo(currentRover);
+
+        // Start animation loop
+        animate();
+    }
+
+    function loadRover(roverName) {
+        // Remove old model
+        if (roverModel) {
+            scene.remove(roverModel);
+        }
+
         const loader = new THREE.GLTFLoader();
-        const modelUrl = ROVER_MODELS[selectedRover] || ROVER_MODELS['curiosity'];
+        const modelUrl = ROVER_MODELS[roverName] || ROVER_MODELS['curiosity'];
 
         loader.load(modelUrl, function(gltf) {
             roverModel = gltf.scene;
 
-            // Adjust scaling and positioning based on which model it is, since NASA models vary in scale
-            if (selectedRover === 'curiosity') {
-                roverModel.scale.set(0.01, 0.01, 0.01);
-            } else if (selectedRover === 'opportunity' || selectedRover === 'spirit') {
-                 roverModel.scale.set(0.05, 0.05, 0.05);
-            } else if (selectedRover === 'perseverance') {
-                roverModel.scale.set(0.01, 0.01, 0.01);
+            // Scaling based on rover
+            if (roverName === 'curiosity' || roverName === 'perseverance') {
+                roverModel.scale.set(0.012, 0.012, 0.012);
             } else {
-                roverModel.scale.set(0.1, 0.1, 0.1);
+                roverModel.scale.set(0.05, 0.05, 0.05);
             }
 
+            roverModel.castShadow = true;
+            roverModel.receiveShadow = true;
             roverModel.position.y = 0;
             scene.add(roverModel);
+
+            // Auto-focus on rover
+            resetCamera();
         }, undefined, function(error) {
             console.error("Error loading model:", error);
-            // Fallback
-            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            const material = new THREE.MeshStandardMaterial({color: 0x888888});
-            roverModel = new THREE.Mesh(geometry, material);
-            roverModel.position.y = 0.25;
-            scene.add(roverModel);
+            createFallbackRover();
         });
+    }
 
+    function createFallbackRover() {
+        const geometry = new THREE.BoxGeometry(0.3, 0.2, 0.4);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x888888,
+            metalness: 0.6
+        });
+        roverModel = new THREE.Mesh(geometry, material);
+        roverModel.position.y = 0.1;
+        scene.add(roverModel);
+        resetCamera();
+    }
 
-        camera.position.set(2, 2, 3);
-        controls.target.set(0, 0.5, 0);
+    function resetCamera() {
+        if (roverModel) {
+            const box = new THREE.Box3().setFromObject(roverModel);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+            cameraZ *= 2;
 
-        animate();
+            camera.position.set(center.x + cameraZ * 0.7, center.y + cameraZ * 0.5, center.z + cameraZ * 0.7);
+            controls.target.copy(center);
+            controls.update();
+        }
+    }
+
+    function zoomIn() {
+        camera.position.multiplyScalar(0.8);
+        controls.update();
+    }
+
+    function zoomOut() {
+        camera.position.multiplyScalar(1.2);
+        controls.update();
+    }
+
+    function rotateLeft() {
+        camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 6);
+        controls.update();
+    }
+
+    function changeRover(rover) {
+        currentRover = rover;
+        loadRover(rover);
+        updateRoverInfo(rover);
+    }
+
+    function updateRoverInfo(rover) {
+        const info = ROVER_INFO[rover];
+        document.getElementById('rover-status').innerHTML = `
+            <strong>STATUS:</strong> ${info.status}<br>
+            <strong>LOCATION:</strong> ${info.location}<br>
+            <strong>OPERATIONAL:</strong> ${info.operational}<br>
+            <strong>DISTANCE:</strong> ${info.distance}
+        `;
+        document.getElementById('more-info-link').href = info.url;
+    }
+
+    function fetchPhotos() {
+        const sol = document.getElementById('sol-input').value;
+        if (sol) {
+            // TODO: Replace with actual API call to NASA Mars Rover API
+            alert(`Fetching photos for Sol ${sol}... (API integration needed)`);
+        }
+    }
+
+    function randomSol() {
+        const randomSol = Math.floor(Math.random() * 2000) + 1;
+        document.getElementById('sol-input').value = randomSol;
+        fetchPhotos();
     }
 
     function animate() {
@@ -177,13 +501,17 @@
     }
 
     window.addEventListener('resize', () => {
-        if (container && camera && renderer) {
+        if (camera && renderer) {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         }
     });
 
+    // Double-click to auto-focus
+    container.addEventListener('dblclick', resetCamera);
+
+    // Initialize scene
     init3DScene();
 </script>
 {% endblock %}

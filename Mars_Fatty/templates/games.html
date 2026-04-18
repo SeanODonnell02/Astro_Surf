@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Simulations | Astro Surf{% endblock %}
+{% block title %}Training Simulations | Astro Surf{% endblock %}
 
 {% block extra_style %}
 <style>
@@ -13,25 +13,26 @@
 
     .games-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 20px;
+        margin-bottom: 30px;
     }
 
     .game-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-dim);
-        border-radius: 4px;
+        background: linear-gradient(135deg, rgba(10, 15, 22, 0.8) 0%, rgba(15, 20, 28, 0.8) 100%);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 6px;
         padding: 20px;
         position: relative;
         overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: all 0.3s ease;
         cursor: pointer;
     }
 
     .game-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.15);
-        border-color: var(--accent-cyan);
+        transform: translateY(-8px);
+        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        border-color: rgba(0, 212, 255, 0.6);
     }
 
     .game-card::before {
@@ -41,22 +42,37 @@
         left: 0;
         width: 4px;
         height: 100%;
-        background: linear-gradient(to bottom, var(--accent-cyan), var(--cyber-pink));
+        background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-magenta));
+    }
+
+    .game-card.locked::before {
+        background: linear-gradient(to bottom, var(--accent-amber), var(--warning));
+    }
+
+    .game-card.fun::before {
+        background: linear-gradient(to bottom, var(--accent-magenta), #ff00ff);
     }
 
     .game-title {
-        font-family: var(--font-display);
-        font-size: 1.3rem;
+        font-family: var(--font-mono);
+        font-size: 1.1rem;
         color: var(--accent-cyan);
-        margin: 0 0 10px 0;
+        margin: 0 0 8px 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .game-card.fun .game-title {
+        color: var(--accent-magenta);
     }
 
     .game-desc {
         font-family: var(--font-mono);
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--text-secondary);
         line-height: 1.4;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+        min-height: 50px;
     }
 
     .game-meta {
@@ -67,82 +83,164 @@
         justify-content: space-between;
         border-top: 1px dotted var(--border-dim);
         padding-top: 10px;
+        margin-bottom: 15px;
     }
 
     .game-status {
         color: var(--nominal);
+        text-transform: uppercase;
     }
+
     .game-status.dev {
         color: var(--accent-amber);
+    }
+
+    .game-status.locked {
+        color: var(--warning);
     }
 
     .launch-btn {
         display: block;
         width: 100%;
         text-align: center;
-        background: rgba(0, 212, 255, 0.1);
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(255, 0, 150, 0.05) 100%);
         border: 1px solid var(--accent-cyan);
         color: var(--accent-cyan);
         padding: 10px;
         font-family: var(--font-mono);
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         text-decoration: none;
         border-radius: 3px;
         transition: all 0.2s;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-top: 15px;
+        letter-spacing: 1px;
+        cursor: pointer;
     }
 
-    .launch-btn:hover {
+    .launch-btn:hover:not(:disabled) {
         background: var(--accent-cyan);
         color: #000;
         font-weight: bold;
-        box-shadow: 0 0 10px var(--accent-cyan);
+        box-shadow: 0 0 15px var(--accent-cyan);
     }
 
-    /* Interactive Orbital Simulator Container (Placeholder for now) */
-    #orbit-sim-container {
+    .launch-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* GAME CONTAINER */
+    .sim-container {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
         width: 100%;
-        height: 500px;
-        background-color: #000;
-        border: 1px solid var(--border-bright);
-        border-radius: 4px;
-        margin-top: 30px;
-        display: none; /* Hidden until a game is launched */
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+    }
+
+    .sim-container.active {
+        display: flex;
+    }
+
+    .sim-box {
+        background: linear-gradient(135deg, rgba(10, 15, 22, 0.95) 0%, rgba(15, 20, 28, 0.95) 100%);
+        border: 2px solid rgba(0, 212, 255, 0.4);
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 1000px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
         position: relative;
-        overflow: hidden;
     }
 
-    .sim-overlay {
+    .sim-close {
         position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(10, 15, 22, 0.8);
-        border: 1px solid var(--accent-cyan);
-        padding: 15px;
-        font-family: var(--font-mono);
-        color: var(--text-primary);
-        z-index: 10;
-        min-width: 250px;
-    }
-
-    .close-sim {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(255, 32, 64, 0.2);
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 50, 50, 0.2);
         border: 1px solid var(--critical);
         color: var(--critical);
-        padding: 5px 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
         cursor: pointer;
-        font-family: var(--font-mono);
-        z-index: 10;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
     }
 
-    .close-sim:hover {
+    .sim-close:hover {
         background: var(--critical);
-        color: #fff;
+        color: white;
+    }
+
+    .sim-title {
+        font-family: var(--font-mono);
+        font-size: 1.5rem;
+        color: var(--accent-cyan);
+        margin: 0 0 20px 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .sim-content {
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .game-canvas {
+        width: 100%;
+        height: 500px;
+        background: #000;
+        border: 1px solid var(--border-dim);
+        border-radius: 4px;
+        margin: 20px 0;
+        position: relative;
+    }
+
+    .score-display {
+        font-family: var(--font-mono);
+        font-size: 1.2rem;
+        color: var(--accent-cyan);
+        text-align: center;
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 4px;
+        margin: 20px 0;
+    }
+
+    .control-instructions {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+    }
+
+    .control-instructions strong {
+        color: var(--accent-cyan);
+    }
+
+    .blink {
+        animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
     }
 </style>
 {% endblock %}
@@ -153,289 +251,553 @@
         <h2 style="text-shadow: 0 0 10px var(--accent-cyan); display:flex; align-items:center; gap:10px;">
             <span>TRAINING SIMULATIONS</span>
         </h2>
-        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">Interactive modules for orbital mechanics and spacecraft operation.</p>
+        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+            Interactive modules for orbital mechanics, spacecraft operation, and mission management.
+        </p>
     </div>
 
-    <!-- The Games Library -->
+    <!-- GAMES LIBRARY -->
     <div class="games-grid" id="games-library">
-        <!-- Game 1 -->
+        <!-- Game 1: Orbital Mechanics -->
         <div class="game-card">
             <h3 class="game-title">Orbital Mechanics 101</h3>
-            <p class="game-desc">Learn the basics of orbital velocity, eccentricity, and inclination by manipulating a satellite's parameters around Earth.</p>
+            <p class="game-desc">Master orbital velocity. Adjust satellite speed to achieve perfectly circular orbits. Learn eccentricity & orbital physics.</p>
             <div class="game-meta">
                 <span>DIFFICULTY: NOVICE</span>
-                <span class="game-status">MODULE READY</span>
+                <span class="game-status">READY</span>
             </div>
-            <button class="launch-btn" onclick="launchSim('orbital')">INITIALIZE SIMULATION</button>
+            <button class="launch-btn" onclick="launchGame('orbital')">LAUNCH SIMULATION</button>
         </div>
 
-        <!-- Game 2 -->
+        <!-- Game 2: Hohmann Transfer -->
         <div class="game-card">
             <h3 class="game-title">Hohmann Transfer</h3>
-            <p class="game-desc">Execute the most fuel-efficient maneuver to transfer a spacecraft between two circular orbits. Time your burns carefully.</p>
+            <p class="game-desc">Execute the most fuel-efficient orbit-to-orbit transfer. Time your burns perfectly and minimize fuel consumption.</p>
             <div class="game-meta">
                 <span>DIFFICULTY: INTERMEDIATE</span>
-                <span class="game-status dev">IN DEVELOPMENT</span>
+                <span class="game-status">READY</span>
             </div>
-            <button class="launch-btn" style="opacity: 0.5; cursor: not-allowed;" disabled>LOCKED</button>
+            <button class="launch-btn" onclick="launchGame('hohmann')">LAUNCH SIMULATION</button>
         </div>
 
-        <!-- Game 3 -->
-        <div class="game-card" style="border-left-color: var(--mars-orange);">
-            <h3 class="game-title" style="color: var(--mars-orange);">Lunar Landing</h3>
-            <p class="game-desc">Take manual control of the Human Landing System. Manage thrust and RCS to touch down safely at the lunar south pole.</p>
+        <!-- Game 3: Lunar Landing -->
+        <div class="game-card">
+            <h3 class="game-title">Lunar Landing Challenge</h3>
+            <p class="game-desc">Manual descent control. Manage thrust & RCS. Land safely with minimal fuel. Touch down at designated landing zone.</p>
             <div class="game-meta">
                 <span>DIFFICULTY: EXPERT</span>
-                <span class="game-status dev">IN DEVELOPMENT</span>
+                <span class="game-status">READY</span>
             </div>
-            <button class="launch-btn" style="border-color: var(--mars-orange); color: var(--mars-orange); opacity: 0.5; cursor: not-allowed;" disabled>LOCKED</button>
-        </div>
-    </div>
-
-    <!-- The Interactive Simulation Area (Hidden by default) -->
-    <div id="orbit-sim-container">
-        <button class="close-sim" onclick="closeSim()">TERMINATE SIM</button>
-
-        <div class="sim-overlay">
-            <div style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid var(--border-dim); padding-bottom: 5px;">ORBITAL PARAMETERS</div>
-
-            <div style="margin-bottom: 15px;">
-                <label for="vel-slider" style="font-size: 0.7rem; color: var(--text-dim); display: flex; justify-content: space-between;">
-                    VELOCITY
-                    <span id="vel-val" style="color: var(--nominal);">7.6 km/s</span>
-                </label>
-                <input type="range" id="vel-slider" min="5" max="11" step="0.1" value="7.6" style="width: 100%; margin-top: 5px; accent-color: var(--accent-cyan);">
-            </div>
-
-            <div style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 15px;">
-                <span style="color: var(--accent-amber);">GOAL:</span> Adjust velocity to achieve a perfectly circular orbit (Eccentricity ~ 0.0).
-            </div>
-
-            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-dim); font-size: 0.7rem;">
-                <div>ECCENTRICITY: <span id="ecc-val" style="color: var(--nominal);">0.00</span></div>
-                <div>STATUS: <span id="orbit-status" class="blink" style="color: var(--nominal);">CIRCULAR (NOMINAL)</span></div>
-            </div>
+            <button class="launch-btn" onclick="launchGame('lunar')">LAUNCH SIMULATION</button>
         </div>
 
-        <!-- Three.js Canvas will be injected here -->
-        <div id="three-canvas" style="width: 100%; height: 100%;"></div>
+        <!-- Game 4: Space Tycoon (Fun) -->
+        <div class="game-card fun">
+            <h3 class="game-title">🚀 Space Tycoon</h3>
+            <p class="game-desc">Build your space empire! Launch satellites, earn credits, upgrade tech. Expand your presence across the solar system.</p>
+            <div class="game-meta">
+                <span>DIFFICULTY: CASUAL</span>
+                <span class="game-status">FUN MODE</span>
+            </div>
+            <button class="launch-btn" onclick="launchGame('tycoon')">LAUNCH GAME</button>
+        </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-{{ block.super }}
+<!-- ORBITAL MECHANICS GAME -->
+<div class="sim-container" id="orbital-game">
+    <div class="sim-box">
+        <button class="sim-close" onclick="closeGame('orbital')">✕</button>
+        <h2 class="sim-title">Orbital Mechanics 101</h2>
+
+        <div class="control-instructions">
+            <strong>OBJECTIVE:</strong> Adjust velocity to achieve circular orbit (Eccentricity = 0.0)<br>
+            <strong>CONTROLS:</strong> Use slider to adjust orbital velocity. Target: 7.6 km/s for circular orbit at 1000km altitude.
+        </div>
+
+        <div class="game-canvas" id="orbital-canvas"></div>
+
+        <div style="margin: 20px 0;">
+            <label style="display: block; margin-bottom: 10px; font-family: var(--font-mono); color: var(--accent-cyan);">
+                Orbital Velocity: <span id="orbital-velocity">7.6</span> km/s
+            </label>
+            <input type="range" id="velocity-slider" min="5" max="11" step="0.1" value="7.6" style="width: 100%; accent-color: var(--accent-cyan);" oninput="updateOrbitalVelocity(this.value)">
+        </div>
+
+        <div class="score-display">
+            Eccentricity: <span id="orbital-ecc">0.00</span> | Status: <span id="orbital-status">COMPUTING</span>
+        </div>
+    </div>
+</div>
+
+<!-- HOHMANN TRANSFER GAME -->
+<div class="sim-container" id="hohmann-game">
+    <div class="sim-box">
+        <button class="sim-close" onclick="closeGame('hohmann')">✕</button>
+        <h2 class="sim-title">Hohmann Transfer Maneuver</h2>
+
+        <div class="control-instructions">
+            <strong>OBJECTIVE:</strong> Transfer from 300km to 35,786km orbit with minimum fuel consumption.<br>
+            <strong>MECHANICS:</strong> Calculate burn times. 2 burns required: initial push (LEO to transfer orbit) and circularization burn.
+        </div>
+
+        <div class="game-canvas" id="hohmann-canvas"></div>
+
+        <div style="margin: 20px 0;">
+            <button class="launch-btn" onclick="executeBurn1()">[ EXECUTE BURN 1 ]</button>
+            <button class="launch-btn" onclick="executeBurn2()" style="margin-top: 10px;">[ EXECUTE BURN 2 ]</button>
+        </div>
+
+        <div class="score-display">
+            Fuel Remaining: <span id="hohmann-fuel">10000</span> kg | Transfer Progress: <span id="hohmann-progress">0</span>%
+        </div>
+    </div>
+</div>
+
+<!-- LUNAR LANDING GAME -->
+<div class="sim-container" id="lunar-game">
+    <div class="sim-box">
+        <button class="sim-close" onclick="closeGame('lunar')">✕</button>
+        <h2 class="sim-title">Lunar Landing Challenge</h2>
+
+        <div class="control-instructions">
+            <strong>OBJECTIVE:</strong> Land safely at designated zone. Altitude < 5km, Velocity < 2 m/s, Fuel > 10%<br>
+            <strong>CONTROLS:</strong> Arrow UP = Increase Thrust | Arrow DOWN = Decrease Thrust | SPACE = RCS Control
+        </div>
+
+        <div class="game-canvas" id="lunar-canvas">
+            <div id="lunar-lander" style="position: absolute; width: 50px; height: 50px; background-color: var(--accent-cyan); bottom: 50%; left: 50%; transform: translateX(-50%);"></div>
+            <div id="moon-surface" style="position: absolute; width: 100%; height: 10%; background-color: #555; bottom: 0;"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+            <div class="score-display">
+                Altitude: <span id="lunar-altitude">120.0</span> km<br>
+                Velocity: <span id="lunar-velocity">1.6</span> km/s
+            </div>
+            <div class="score-display">
+                Fuel: <span id="lunar-fuel">100</span>%<br>
+                Status: <span id="lunar-status">DESCENDING</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SPACE TYCOON GAME -->
+<div class="sim-container" id="tycoon-game">
+    <div class="sim-box">
+        <button class="sim-close" onclick="closeGame('tycoon')">✕</button>
+        <h2 class="sim-title">🚀 Space Tycoon</h2>
+
+        <div class="control-instructions">
+            <strong>BUILD YOUR SPACE EMPIRE!</strong> Launch satellites, earn credits, upgrade technology, and expand across the solar system.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+            <div class="score-display" style="text-align: left;">
+                <div>💰 Credits:</div>
+                <div style="font-size: 1.8rem; color: var(--nominal);">$<span id="tycoon-credits">50000</span></div>
+            </div>
+            <div class="score-display" style="text-align: left;">
+                <div>📡 Satellites:</div>
+                <div style="font-size: 1.8rem; color: var(--accent-amber);">x<span id="tycoon-satellites">0</span></div>
+            </div>
+            <div class="score-display" style="text-align: left;">
+                <div>🌍 Revenue/sec:</div>
+                <div style="font-size: 1.8rem; color: var(--accent-cyan);">$<span id="tycoon-revenue">10</span></div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+            <button class="launch-btn" onclick="buyAction('sat1')">Launch Basic Sat ($5000)</button>
+            <button class="launch-btn" onclick="buyAction('sat2')">Launch Comsat ($15000)</button>
+            <button class="launch-btn" onclick="buyAction('tech1')">Upgrade Tech ($10000)</button>
+            <button class="launch-btn" onclick="buyAction('station')">Build Space Station ($50000)</button>
+        </div>
+
+        <div class="control-instructions">
+            💡 <strong>STRATEGY:</strong> Each satellite generates passive income. Upgrades boost efficiency. Stations multiply earnings!
+        </div>
+
+        <div id="tycoon-log" style="background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-dim); padding: 15px; border-radius: 4px; max-height: 150px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-secondary);">
+            <div>Game started. Ready to build your empire!</div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
 <script>
-    const library = document.getElementById('games-library');
-    const simContainer = document.getElementById('orbit-sim-container');
-
-    let scene, camera, renderer, controls, earth, satellite, orbitPath;
-    let animationId;
-
-    // Physics variables
-    const G = 6.67430e-11;
-    const M_earth = 5.972e24;
-    const GM = G * M_earth;
-
-    // Scale down for visualization (1 unit = 1000km)
-    const earthRadius = 6.371;
-    let altitude = 1.0; // 1000km above surface
-    let r0 = earthRadius + altitude;
-
-    let velocity = 7.6; // km/s (roughly circular at this altitude)
-    let theta = 0;
-
-    function launchSim(gameId) {
-        if (gameId === 'orbital') {
-            library.style.display = 'none';
-            simContainer.style.display = 'block';
-            initOrbitalSim();
+    // GLOBAL GAME STATE
+    let currentGame = null;
+    let gameState = {
+        orbital: {
+            velocity: 7.6,
+            eccentricity: 0,
+            scene: null,
+            camera: null,
+            renderer: null,
+            satellite: null,
+            orbitLine: null
+        },
+        hohmann: {
+            fuel: 10000,
+            maxFuel: 10000,
+            progress: 0,
+            burn1Executed: false,
+            burn2Executed: false,
+            scene: null,
+            camera: null,
+            renderer: null,
+            satellite: null
+        },
+        lunar: {
+            altitude: 120000, // in meters
+            velocity: 1600, // in m/s
+            fuel: 100,
+            status: 'DESCENDING',
+            thrust: 0
+        },
+        tycoon: {
+            credits: 50000,
+            satellites: 0,
+            revenuePerSec: 10,
+            tecLevel: 1,
+            stations: 0,
+            gameTime: 0
         }
+    };
+
+    function launchGame(game) {
+        currentGame = game;
+        document.getElementById(game + '-game').classList.add('active');
+
+        if (game === 'orbital') initOrbitalGame();
+        if (game === 'hohmann') initHohmannGame();
+        if (game === 'lunar') initLunarGame();
+        if (game === 'tycoon') initTycoonGame();
     }
 
-    function closeSim() {
-        simContainer.style.display = 'none';
-        library.style.display = 'grid';
-
-        // Clean up Three.js
-        if (animationId) cancelAnimationFrame(animationId);
-        if (renderer) {
-            document.getElementById('three-canvas').innerHTML = '';
-            renderer.dispose();
-        }
+    function closeGame(game) {
+        document.getElementById(game + '-game').classList.remove('active');
+        currentGame = null;
     }
 
-    function initOrbitalSim() {
-        const canvasContainer = document.getElementById('three-canvas');
-        canvasContainer.innerHTML = ''; // Clear previous
+    // ===== ORBITAL MECHANICS GAME =====
+    function initOrbitalGame() {
+        const canvas = document.getElementById('orbital-canvas');
+        if (!canvas) return;
 
-        scene = new THREE.Scene();
-
-        // Basic starfield
-        const starGeo = new THREE.BufferGeometry();
-        const starPos = new Float32Array(3000);
-        for(let i=0; i<3000; i++) {
-            starPos[i] = (Math.random() - 0.5) * 100;
+        // Clear previous renderer
+        while (canvas.firstChild) {
+            canvas.removeChild(canvas.firstChild);
         }
-        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.05}));
-        scene.add(stars);
 
-        camera = new THREE.PerspectiveCamera(45, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
-        camera.position.set(0, 15, 20);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        canvas.appendChild(renderer.domElement);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
-        canvasContainer.appendChild(renderer.domElement);
-
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-
-        // Earth
-        scene.add(new THREE.AmbientLight(0x404040));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(10, 10, 10);
-        scene.add(dirLight);
-
-        // Simple Earth (Wireframe to look "simulated")
-        const earthGeo = new THREE.SphereGeometry(earthRadius, 32, 32);
-        const earthMat = new THREE.MeshBasicMaterial({ color: 0x0044aa, wireframe: true, transparent: true, opacity: 0.3 });
-        earth = new THREE.Mesh(earthGeo, earthMat);
-
-        // Solid core
-        const core = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 0.98, 32, 32), new THREE.MeshPhongMaterial({color: 0x001133}));
-        earth.add(core);
+        const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const earthMaterial = new THREE.MeshBasicMaterial({ color: 0x0077ff });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
         scene.add(earth);
 
-        // Satellite
-        const satGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        const satMat = new THREE.MeshBasicMaterial({ color: 0x00ff9c });
-        satellite = new THREE.Mesh(satGeo, satMat);
+        const satGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const satMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const satellite = new THREE.Mesh(satGeometry, satMaterial);
         scene.add(satellite);
 
-        // Orbit Path Line
-        const pathGeo = new THREE.BufferGeometry();
-        const pathMat = new THREE.LineBasicMaterial({ color: 0xffb800, transparent: true, opacity: 0.5 });
-        orbitPath = new THREE.Line(pathGeo, pathMat);
-        scene.add(orbitPath);
+        camera.position.z = 5;
 
-        // UI Listeners
-        const velSlider = document.getElementById('vel-slider');
-        const velVal = document.getElementById('vel-val');
+        gameState.orbital.scene = scene;
+        gameState.orbital.camera = camera;
+        gameState.orbital.renderer = renderer;
+        gameState.orbital.satellite = satellite;
 
-        velSlider.addEventListener('input', (e) => {
-            velocity = parseFloat(e.target.value);
-            velVal.textContent = velocity.toFixed(1) + ' km/s';
-            updateOrbitPath();
-        });
-
-        updateOrbitPath();
-        animateSim();
+        updateOrbitalDisplay();
+        animateOrbital();
     }
 
-    function calculateOrbitPoints(v0) {
-        // Very simplified 2D Keplerian orbit approximation for visual purposes
-        // v0 is velocity at periapsis (r0)
+    function updateOrbitalVelocity(value) {
+        gameState.orbital.velocity = parseFloat(value);
+        document.getElementById('orbital-velocity').textContent = value;
+        updateOrbitalDisplay();
+    }
 
-        const points = [];
-        const mu = 398600; // Earth's standard gravitational parameter km^3/s^2
+    function updateOrbitalDisplay() {
+        const v = gameState.orbital.velocity;
+        const circular = 7.6;
+        const ecc = Math.abs(v - circular) / circular;
+        gameState.orbital.eccentricity = Math.max(0, Math.min(1, ecc));
 
-        // Convert to simulation scale (roughly)
-        const v = v0 * 1000;
-        const r = r0 * 1000000;
+        document.getElementById('orbital-ecc').textContent = ecc.toFixed(2);
 
-        // Specific orbital energy
-        const E = (v*v)/2 - GM/r;
+        let status = 'COMPUTING';
+        let color = 'var(--accent-amber)';
 
-        // Semi-major axis
-        const a = -GM / (2*E);
-
-        // Angular momentum
-        const h = r * v;
-
-        // Eccentricity
-        let e = Math.sqrt(1 + (2*E*h*h)/(GM*GM));
-
-        // Cap eccentricity for visual sanity if it escapes
-        if (e >= 1.0) e = 0.99;
-
-        const a_sim = (a / 1000000); // Back to sim scale
-
-        // Update UI
-        const eccElem = document.getElementById('ecc-val');
-        const statusElem = document.getElementById('orbit-status');
-
-        eccElem.textContent = e.toFixed(2);
-
-        if (e < 0.05) {
-            eccElem.style.color = "var(--nominal)";
-            statusElem.textContent = "CIRCULAR (NOMINAL)";
-            statusElem.style.color = "var(--nominal)";
-        } else if (e < 0.5) {
-            eccElem.style.color = "var(--accent-amber)";
-            statusElem.textContent = "ELLIPTICAL (STABLE)";
-            statusElem.style.color = "var(--accent-amber)";
+        if (ecc < 0.05) {
+            status = '✓ CIRCULAR ORBIT (NOMINAL)';
+            color = 'var(--nominal)';
+        } else if (ecc < 0.3) {
+            status = 'ELLIPTICAL - STABLE';
+            color = 'var(--accent-amber)';
         } else {
-            eccElem.style.color = "var(--critical)";
-            statusElem.textContent = "HIGHLY ELLIPTICAL (WARNING)";
-            statusElem.style.color = "var(--critical)";
+            status = 'HIGHLY ELLIPTICAL - ADJUST';
+            color = 'var(--critical)';
         }
 
-        // Draw ellipse
-        for (let i = 0; i <= 64; i++) {
-            const angle = (i / 64) * Math.PI * 2;
-            // Orbit equation r(theta) = (a * (1 - e^2)) / (1 + e * cos(theta))
-            const r_theta = (a_sim * (1 - e*e)) / (1 + e * Math.cos(angle));
+        const statusEl = document.getElementById('orbital-status');
+        statusEl.textContent = status;
+        statusEl.style.color = color;
+    }
 
-            // If it dips below earth, just let it draw through for visual feedback
-            points.push(new THREE.Vector3(r_theta * Math.cos(angle), 0, r_theta * Math.sin(angle)));
+    function animateOrbital() {
+        if (currentGame !== 'orbital') return;
+        requestAnimationFrame(animateOrbital);
+
+        const time = Date.now() * 0.001;
+        const eccentricity = gameState.orbital.eccentricity;
+        const semiMajorAxis = 2;
+        const semiMinorAxis = 2 * Math.sqrt(1 - Math.pow(eccentricity, 2));
+
+        gameState.orbital.satellite.position.x = semiMajorAxis * Math.cos(time);
+        gameState.orbital.satellite.position.y = semiMinorAxis * Math.sin(time);
+
+        gameState.orbital.renderer.render(gameState.orbital.scene, gameState.orbital.camera);
+    }
+
+    // ===== HOHMANN TRANSFER GAME =====
+    function initHohmannGame() {
+        const canvas = document.getElementById('hohmann-canvas');
+        if (!canvas) return;
+
+        // Clear previous renderer
+        while (canvas.firstChild) {
+            canvas.removeChild(canvas.firstChild);
         }
 
-        return { points, a_sim, e };
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        canvas.appendChild(renderer.domElement);
+
+        const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const earthMaterial = new THREE.MeshBasicMaterial({ color: 0x0077ff });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        scene.add(earth);
+
+        const satGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const satMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const satellite = new THREE.Mesh(satGeometry, satMaterial);
+        scene.add(satellite);
+
+        const orbit1 = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.EllipseCurve(0, 0, 2, 2, 0, 2 * Math.PI, false, 0).getPoints(100)), new THREE.LineBasicMaterial({ color: 0x00ff00 }));
+        orbit1.rotation.x = Math.PI / 2;
+        scene.add(orbit1);
+
+        const orbit2 = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.EllipseCurve(0, 0, 4, 4, 0, 2 * Math.PI, false, 0).getPoints(100)), new THREE.LineBasicMaterial({ color: 0xff0000 }));
+        orbit2.rotation.x = Math.PI / 2;
+        scene.add(orbit2);
+
+        camera.position.z = 8;
+
+        gameState.hohmann.scene = scene;
+        gameState.hohmann.camera = camera;
+        gameState.hohmann.renderer = renderer;
+        gameState.hohmann.satellite = satellite;
+
+        document.getElementById('hohmann-fuel').textContent = gameState.hohmann.fuel;
+        animateHohmann();
     }
 
-    let currentOrbitData = null;
-
-    function updateOrbitPath() {
-        currentOrbitData = calculateOrbitPoints(velocity);
-        orbitPath.geometry.setFromPoints(currentOrbitData.points);
+    function executeBurn1() {
+        if (gameState.hohmann.burn1Executed) {
+            alert('Burn 1 already executed!');
+            return;
+        }
+        const fuelCost = 3500;
+        if (gameState.hohmann.fuel < fuelCost) {
+            alert('Insufficient fuel!');
+            return;
+        }
+        gameState.hohmann.fuel -= fuelCost;
+        gameState.hohmann.burn1Executed = true;
+        gameState.hohmann.progress = 50;
+        document.getElementById('hohmann-fuel').textContent = gameState.hohmann.fuel.toFixed(0);
+        document.getElementById('hohmann-progress').textContent = '50';
+        alert('✓ Burn 1 complete! Transfer orbit initiated.');
     }
 
-    function animateSim() {
-        animationId = requestAnimationFrame(animateSim);
+    function executeBurn2() {
+        if (!gameState.hohmann.burn1Executed) {
+            alert('Execute Burn 1 first!');
+            return;
+        }
+        if (gameState.hohmann.burn2Executed) {
+            alert('Burn 2 already executed!');
+            return;
+        }
+        const fuelCost = 2100;
+        if (gameState.hohmann.fuel < fuelCost) {
+            alert('Insufficient fuel!');
+            return;
+        }
+        gameState.hohmann.fuel -= fuelCost;
+        gameState.hohmann.burn2Executed = true;
+        gameState.hohmann.progress = 100;
+        document.getElementById('hohmann-fuel').textContent = gameState.hohmann.fuel.toFixed(0);
+        document.getElementById('hohmann-progress').textContent = '100';
+        alert('✓ TRANSFER COMPLETE! You saved ' + (10000 - gameState.hohmann.fuel).toFixed(0) + ' kg of fuel. Mission success!');
+    }
 
-        if (currentOrbitData) {
-            // Move satellite along path
-            theta += 0.01; // Constant angular velocity for simplicity in this visual sim
-            if (theta > Math.PI * 2) theta = 0;
+    function animateHohmann() {
+        if (currentGame !== 'hohmann') return;
+        requestAnimationFrame(animateHohmann);
 
-            const r_theta = (currentOrbitData.a_sim * (1 - currentOrbitData.e*currentOrbitData.e)) / (1 + currentOrbitData.e * Math.cos(theta));
+        const time = Date.now() * 0.0005;
+        let radius = 2;
+        if (gameState.hohmann.burn1Executed && !gameState.hohmann.burn2Executed) {
+            radius = 3;
+        } else if (gameState.hohmann.burn2Executed) {
+            radius = 4;
+        }
 
-            satellite.position.x = r_theta * Math.cos(theta);
-            satellite.position.z = r_theta * Math.sin(theta);
+        gameState.hohmann.satellite.position.x = radius * Math.cos(time);
+        gameState.hohmann.satellite.position.z = radius * Math.sin(time);
 
-            // Check collision with earth
-            if (r_theta < earthRadius) {
-                 document.getElementById('orbit-status').textContent = "IMPACT DETECTED";
-                 document.getElementById('orbit-status').style.color = "var(--critical)";
+        gameState.hohmann.renderer.render(gameState.hohmann.scene, gameState.hohmann.camera);
+    }
+
+    // ===== LUNAR LANDING GAME =====
+    function initLunarGame() {
+        document.addEventListener('keydown', lunarControl);
+        lunarGameLoop();
+    }
+
+    function lunarControl(e) {
+        if (currentGame !== 'lunar') return;
+        if (e.key === 'ArrowUp') gameState.lunar.thrust = Math.min(100, gameState.lunar.thrust + 10);
+        if (e.key === 'ArrowDown') gameState.lunar.thrust = Math.max(0, gameState.lunar.thrust - 10);
+        if (e.code === 'Space') gameState.lunar.velocity -= 100;
+    }
+
+    function lunarGameLoop() {
+        if (currentGame !== 'lunar') return;
+
+        // Gravity descent
+        gameState.lunar.velocity += 1.62; // Moon's gravity
+        gameState.lunar.altitude -= gameState.lunar.velocity * 0.1;
+        gameState.lunar.fuel -= gameState.lunar.thrust * 0.01;
+
+        // Apply thrust
+        if (gameState.lunar.thrust > 0) {
+            gameState.lunar.velocity -= gameState.lunar.thrust * 0.1;
+        }
+
+        const lander = document.getElementById('lunar-lander');
+        const altitudePercentage = (gameState.lunar.altitude / 120000) * 100;
+        lander.style.bottom = `${altitudePercentage}%`;
+
+        document.getElementById('lunar-altitude').textContent = (gameState.lunar.altitude / 1000).toFixed(1);
+        document.getElementById('lunar-velocity').textContent = gameState.lunar.velocity.toFixed(2);
+        document.getElementById('lunar-fuel').textContent = Math.max(0, gameState.lunar.fuel).toFixed(0);
+
+        // Check landing condition
+        if (gameState.lunar.altitude <= 0) {
+            if (gameState.lunar.velocity < 2 && gameState.lunar.fuel > 10) {
+                document.getElementById('lunar-status').textContent = '✓ SAFE LANDING!';
+                document.getElementById('lunar-status').style.color = 'var(--nominal)';
+                alert('🎉 Perfect landing! Mission accomplished!');
+                closeGame('lunar');
+                return;
+            } else {
+                document.getElementById('lunar-status').textContent = '✗ CRASH!';
+                document.getElementById('lunar-status').style.color = 'var(--critical)';
+                alert('💥 Mission failed. Try again!');
+                closeGame('lunar');
+                return;
             }
         }
 
-        earth.rotation.y += 0.002;
-        controls.update();
-        renderer.render(scene, camera);
+        setTimeout(lunarGameLoop, 100);
     }
 
-    window.addEventListener('resize', () => {
-        if (camera && renderer && simContainer.style.display !== 'none') {
-            const canvasContainer = document.getElementById('three-canvas');
-            camera.aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+    // ===== SPACE TYCOON GAME =====
+    let tycoonInterval;
+    function initTycoonGame() {
+        clearInterval(tycoonInterval);
+        tycoonInterval = setInterval(tycoonTick, 1000);
+    }
+
+    function tycoonTick() {
+        gameState.tycoon.credits += gameState.tycoon.revenuePerSec * (1 + gameState.tycoon.stations * 0.5);
+        document.getElementById('tycoon-credits').textContent = Math.floor(gameState.tycoon.credits);
+        gameState.tycoon.gameTime++;
+    }
+
+    function buyAction(action) {
+        const prices = {
+            'sat1': 5000,
+            'sat2': 15000,
+            'tech1': 10000,
+            'station': 50000
+        };
+
+        const cost = prices[action];
+        if (gameState.tycoon.credits < cost) {
+            addTycoonLog('✗ Insufficient funds!', 'var(--critical)');
+            return;
         }
+
+        gameState.tycoon.credits -= cost;
+        let msg = '';
+        let color = 'var(--nominal)';
+
+        if (action === 'sat1') {
+            gameState.tycoon.satellites += 1;
+            gameState.tycoon.revenuePerSec += 10;
+            msg = '✓ Basic Satellite launched! +$10/sec';
+        } else if (action === 'sat2') {
+            gameState.tycoon.satellites += 3;
+            gameState.tycoon.revenuePerSec += 50;
+            msg = '✓ Comsat constellation deployed! +$50/sec';
+        } else if (action === 'tech1') {
+            gameState.tycoon.tecLevel += 1;
+            gameState.tycoon.revenuePerSec *= 1.3;
+            msg = '✓ Tech upgraded! Revenue boosted by 30%';
+            color = 'var(--accent-cyan)';
+        } else if (action === 'station') {
+            gameState.tycoon.stations += 1;
+            msg = '✓ Space Station online! All revenue x' + (1 + gameState.tycoon.stations * 0.5);
+            color = 'var(--accent-amber)';
+        }
+
+        document.getElementById('tycoon-credits').textContent = Math.floor(gameState.tycoon.credits);
+        document.getElementById('tycoon-satellites').textContent = gameState.tycoon.satellites;
+        document.getElementById('tycoon-revenue').textContent = Math.floor(gameState.tycoon.revenuePerSec);
+
+        addTycoonLog(msg, color);
+    }
+
+    function addTycoonLog(msg, color = 'var(--text-secondary)') {
+        const log = document.getElementById('tycoon-log');
+        const time = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.innerHTML = `<span style="color: ${color};">[${time}] ${msg}</span>`;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // Close on background click
+    document.querySelectorAll('.sim-container').forEach(el => {
+        el.addEventListener('click', function(e) {
+            if (e.target === this) {
+                const game = this.id.split('-')[0];
+                closeGame(game);
+            }
+        });
     });
 </script>
 {% endblock %}

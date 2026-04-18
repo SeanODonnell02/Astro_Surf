@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block title %}astroSurf Login{% endblock %}
+
+{% block extra_style %}
+<style>
+    .login-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, rgba(0, 20, 40, 0.9) 0%, rgba(10, 5, 25, 0.9) 100%);
+        align-items: center;
+        justify-items: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-container::before {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+        top: -100px;
+        left: -100px;
+        animation: float 6s ease-in-out infinite;
+        z-index: 1;
+    }
+
+    .login-container::after {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255, 0, 150, 0.1) 0%, transparent 70%);
+        bottom: -100px;
+        right: -100px;
+        animation: float 8s ease-in-out infinite reverse;
+        z-index: 1;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(30px, 30px); }
+    }
+
+    .login-box {
+        background: linear-gradient(135deg, rgba(10, 15, 22, 0.95) 0%, rgba(15, 20, 28, 0.95) 100%);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 8px;
+        padding: 50px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.2), inset 0 0 20px rgba(255, 0, 150, 0.05);
+        position: relative;
+        z-index: 10;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .login-header h1 {
+        font-family: var(--font-mono);
+        font-size: 2rem;
+        color: var(--accent-cyan);
+        text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        margin: 0 0 10px 0;
+        letter-spacing: 2px;
+    }
+
+    .login-header p {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin: 0;
+        letter-spacing: 1px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--accent-cyan);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 4px;
+        color: var(--nominal);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        background: rgba(0, 212, 255, 0.1);
+        border-color: rgba(0, 212, 255, 0.5);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+    }
+
+    .form-group input::placeholder {
+        color: var(--text-dim);
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(255, 0, 150, 0.1) 100%);
+        border: 1px solid var(--accent-cyan);
+        color: var(--accent-cyan);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+        margin-top: 30px;
+    }
+
+    .submit-btn:hover {
+        background: var(--accent-cyan);
+        color: #000;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        font-weight: bold;
+    }
+
+    .toggle-form {
+        text-align: center;
+        margin-top: 20px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .toggle-form a {
+        color: var(--accent-cyan);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .toggle-form a:hover {
+        color: var(--accent-magenta);
+        text-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    .form-section {
+        display: none;
+    }
+
+    .form-section.active {
+        display: block;
+    }
+
+    .error {
+        background: rgba(255, 50, 50, 0.1);
+        border: 1px solid var(--critical);
+        color: var(--critical);
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+    }
+
+    .success {
+        background: rgba(0, 200, 100, 0.1);
+        border: 1px solid var(--nominal);
+        color: var(--nominal);
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-box">
+        <div class="login-header">
+            <h1>astroSurf</h1>
+            <p>Mission Control Access</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- LOGIN FORM -->
+        <form method="post" action="{% url 'login' %}" class="form-section active" id="login-form">
+            {% csrf_token %}
+
+            {% if login_error %}
+                <div class="error">{{ login_error }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="login-username">Username or Email</label>
+                <input
+                    type="text"
+                    id="login-username"
+                    name="username"
+                    placeholder="agent_name"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input
+                    type="password"
+                    id="login-password"
+                    name="password"
+                    placeholder="••••••••"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="submit-btn">[ INITIATE LOGIN ]</button>
+
+            <div class="toggle-form">
+                New to astroSurf? <a onclick="toggleForms()">Create Account</a>
+            </div>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form method="post" action="{% url 'register' %}" class="form-section" id="register-form">
+            {% csrf_token %}
+
+            {% if register_error %}
+                <div class="error">{{ register_error }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="reg-username">Choose Callsign</label>
+                <input
+                    type="text"
+                    id="reg-username"
+                    name="username"
+                    placeholder="agent_name"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="reg-email">Email Address</label>
+                <input
+                    type="email"
+                    id="reg-email"
+                    name="email"
+                    placeholder="your@email.com"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="reg-password">Create Password</label>
+                <input
+                    type="password"
+                    id="reg-password"
+                    name="password"
+                    placeholder="••••••••"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="reg-password-confirm">Confirm Password</label>
+                <input
+                    type="password"
+                    id="reg-password-confirm"
+                    name="password_confirm"
+                    placeholder="••••••••"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="submit-btn">[ REGISTER AGENT ]</button>
+
+            <div class="toggle-form">
+                Already registered? <a onclick="toggleForms()">Sign In</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleForms() {
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+
+        loginForm.classList.toggle('active');
+        registerForm.classList.toggle('active');
+    }
+</script>
+{% endblock %}

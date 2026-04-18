@@ -5,12 +5,6 @@
 
 {% block extra_style %}
 <style>
-    /* Override base.html body styles for the home page */
-    body {
-        padding: 0;
-        overflow: auto; /* Allow scrolling */
-    }
-
     #hero-container {
         width: 100vw;
         height: 100vh;
@@ -21,16 +15,20 @@
         background: #000;
     }
 
-    /* The main content that will be centered over the animation */
     .content-wrapper {
-        position: relative;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         z-index: 10;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 80px 20px 20px 20px; /* Add padding for the top bar */
         width: 100%;
         box-sizing: border-box;
+        overflow-y: auto;
+        padding-top: 100px;
     }
 
     .landing-overlay {
@@ -83,7 +81,7 @@
 <!-- This block now only contains the animation and the wrapper -->
 <div id="hero-container"></div>
 
-<div class="content-wrapper">
+<div class="content-wrapper one-box-layout">
     <div class="landing-overlay">
         <h1 class="welcome-header">Welcome, <span>{{ user.username|default:'Guest' }}</span> to AstroSurf</h1>
 
@@ -148,7 +146,7 @@
     });
 
     // Fetch NASA APOD
-    fetch(`https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY`)
+    fetch(`https://api.nasa.gov/planetary/apod?api_key={{ NASA_API_KEY }}`)
         .then(response => response.json())
         .then(data => {
             if (data.media_type === 'image') {

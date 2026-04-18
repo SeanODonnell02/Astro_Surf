@@ -1,5 +1,6 @@
-<html lang="en">
+{% load static %}
 <!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,6 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap');
 
         :root {
-
             /* === Backgrounds === */
             --bg-void:       #030508;   /* body background — the void of space */
             --bg-surface:    #0a0f16;   /* panel background */
@@ -53,8 +53,18 @@
             align-items: center;
             min-height: 100vh;
             padding: 20px;
-            padding-top: 60px; /* Space for top bar */
+            padding-top: 100px;
             overflow-x: hidden;
+        }
+
+        .header-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1002;
+            background-color: var(--bg-void);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
 
         .top-status-bar {
@@ -68,11 +78,6 @@
             font-family: var(--font-mono);
             font-size: 0.75rem;
             color: var(--text-secondary);
-            z-index: 1002;
-            position: fixed;
-            top: 0;
-            left: 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
             text-transform: uppercase;
             letter-spacing: 1.5px;
         }
@@ -143,7 +148,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
+            background:
                 radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
                 radial-gradient(circle at 80% 70%, rgba(255, 0, 255, 0.05) 0%, transparent 50%);
             z-index: -1;
@@ -294,27 +299,27 @@
         }
 
         .nav-tabs {
-            margin-bottom: 1rem;
             display: flex;
-            justify-content: center; /* Center the tabs */
-            flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
-            gap: 5px; /* Reduced gap */
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
             font-family: var(--font-display);
-            font-size: 0.7rem; /* Reduced font size */
+            font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid var(--border-dim);
             padding-bottom: 0;
             width: 100%;
-            max-width: 900px; /* Increased max-width */
+            max-width: 1200px;
             align-items: flex-end;
+            margin: 0 auto;
         }
 
         .nav-link {
             color: var(--text-secondary);
             text-decoration: none;
             transition: all 0.2s;
-            padding: 6px 12px; /* Reduced padding */
+            padding: 6px 12px;
             border: 1px solid transparent;
             border-bottom: none;
             border-radius: 4px 4px 0 0;
@@ -338,7 +343,6 @@
             font-weight: bold;
         }
 
-
         .logout-btn {
             background: none;
             border: none;
@@ -356,7 +360,6 @@
             text-decoration: none;
             font-size: 0.75rem;
             transition: all 0.2s;
-.
         }
 
         .status-login-link:hover {
@@ -369,16 +372,88 @@
             color: var(--text-primary);
         }
 
-        .one-box-layout {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
         body::-webkit-scrollbar {
             width: 8px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: var(--bg-void);
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: var(--border-dim);
+            border-radius: 4px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: var(--border-bright);
+        }
+
+        footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            border-top: 1px solid var(--border-dim);
+            padding-top: 1rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        footer p {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        @keyframes nav-link-glitch {
+            0% {
+                text-shadow: 0 0 8px var(--accent-cyan), 0 0 12px var(--accent-cyan);
+                transform: translate(0, 0);
+            }
+            20% {
+                text-shadow: 2px 2px 8px var(--cyber-pink), -2px -2px 8px var(--accent-cyan);
+                transform: translate(-1px, 1px);
+            }
+            40% {
+                text-shadow: -2px 2px 8px var(--cyber-pink), 2px -2px 8px var(--accent-cyan);
+                transform: translate(1px, -1px);
+            }
+            60% {
+                text-shadow: 2px -2px 8px var(--cyber-pink), -2px 2px 8px var(--accent-cyan);
+                transform: translate(-1px, 1px);
+            }
+            80% {
+                text-shadow: -2px -2px 8px var(--cyber-pink), 2px 2px 8px var(--accent-cyan);
+                transform: translate(1px, -1px);
+            }
+            100% {
+                text-shadow: 0 0 8px var(--accent-cyan), 0 0 12px var(--accent-cyan);
+                transform: translate(0, 0);
+            }
+        }
+
+        .nav-link:hover {
+            animation: nav-link-glitch 0.3s infinite;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: var(--accent-cyan);
+            transform: scaleX(0);
+            transform-origin: bottom right;
+            transition: transform 0.25s ease-out;
+        }
+
+        .nav-link:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
         }
 
         {% block extra_style %}{% endblock %}
@@ -386,51 +461,55 @@
 </head>
 <body>
 
-    <div class="top-status-bar">
-        <div class="status-item">
-            <span class="status-label">TIME:</span>
-            <span class="status-value" id="current-time">00:00:00</span>
+    <div class="header-wrapper">
+        <!-- TOP STATUS BAR -->
+        <div class="top-status-bar">
+            <div class="status-item">
+                <span class="status-label">TIME:</span>
+                <span class="status-value" id="current-time">00:00:00</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">DATE:</span>
+                <span class="status-value" id="current-date">2026-04-18</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">USER:</span>
+                <span class="status-value">{% if user.is_authenticated %}{{ user.username|upper }}{% else %}GUEST{% endif %}</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">LAUNCH:</span>
+                <span class="status-value" id="launch-timer" data-launch-name="Unknown" style="cursor: pointer; position: relative;" title="Loading upcoming launch...">T-00:00:00</span>
+            </div>
+            <div class="status-item" style="border-left: 1px solid var(--border-dim); padding-left: 20px;">
+                {% if user.is_authenticated %}
+                    <form action="{% url 'accounts:logout' %}" method="post" style="display: flex; margin: 0; padding: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn" style="width: auto; padding: 0; border: none; background: none;">[ LOGOUT ]</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="status-login-link">[ LOGIN ]</a>
+                {% endif %}
+            </div>
         </div>
-        <div class="status-item">
-            <span class="status-label">DATE:</span>
-            <span class="status-value" id="current-date">2026-04-16</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">USER:</span>
-            <span class="status-value">{% if user.is_authenticated %}{{ user.username }}{% else %}GUEST{% endif %}</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">LAUNCH:</span>
-            <span class="status-value" id="launch-timer" data-launch-name="Unknown" style="cursor: pointer; position: relative;" title="Loading upcoming launch...">T-00:00:00</span>
-        </div>
-        <div class="status-item" style="border-left: 1px solid var(--border-dim); padding-left: 20px;">
-            {% if user.is_authenticated %}
-                <form action="{% url 'accounts:logout' %}" method="post" style="display: flex;">
-                    {% csrf_token %}
-                    <button type="submit" class="logout-btn">[ LOGOUT ]</button>
-                </form>
-            {% else %}
-                <a href="{% url 'accounts:login' %}" class="status-login-link">[ LOGIN ]</a>
-            {% endif %}
-        </div>
-    </div>
-    <nav class="nav-tabs">
-        <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.view_name == 'home' %}nav-active{% endif %}">[ HOME ]</a>
-        <a href="{% url 'mission_control' %}" class="nav-link {% if request.resolver_match.view_name == 'mission_control' %}nav-active{% endif %}">[ MISSION CONTROL ]</a>
-        <a href="{% url 'Mars_Fatty:astro_grav' %}" class="nav-link {% if request.resolver_match.view_name == 'Mars_Fatty:astro_grav' %}nav-active{% endif %}">[ ASTRO_GRAV ]</a>
-        <a href="{% url 'Mars_Fatty:mars_rover' %}" class="nav-link {% if request.resolver_match.view_name == 'Mars_Fatty:mars_rover' %}nav-active{% endif %}">[ MARS_ROVER ]</a>
-        <a href="{% url 'Mars_Fatty:artemis' %}" class="nav-link {% if request.resolver_match.view_name == 'Mars_Fatty:artemis' %}nav-active{% endif %}">[ ARTEMIS ]</a>
-        <a href="{% url 'iss_tracker' %}" class="nav-link {% if request.resolver_match.view_name == 'iss_tracker' %}nav-active{% endif %}">[ ISS UPLINK ]</a>
-        <a href="{% url 'Mars_Fatty:games' %}" class="nav-link {% if request.resolver_match.view_name == 'Mars_Fatty:games' %}nav-active{% endif %}">[ GAMES ]</a>
-    </nav>
-    <div class="one-box-layout">
-        {% block content %}{% endblock %}
+
+        <!-- NAVIGATION TABS -->
+        <nav class="nav-tabs">
+            <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}nav-active{% endif %}">[ HOME ]</a>
+            <a href="{% url 'mission_control' %}" class="nav-link {% if request.resolver_match.url_name == 'mission_control' %}nav-active{% endif %}">[ MISSION CONTROL ]</a>
+            <a href="{% url 'Mars_Fatty:astro_grav' %}" class="nav-link {% if request.resolver_match.url_name == 'Mars_Fatty:astro_grav' %}nav-active{% endif %}">[ ASTRO_GRAV ]</a>
+            <a href="{% url 'Mars_Fatty:mars_rover' %}" class="nav-link {% if request.resolver_match.url_name == 'Mars_Fatty:mars_rover' %}nav-active{% endif %}">[ MARS_ROVER ]</a>
+            <a href="{% url 'Mars_Fatty:artemis' %}" class="nav-link {% if request.resolver_match.url_name == 'Mars_Fatty:artemis' %}nav-active{% endif %}">[ ARTEMIS ]</a>
+            <a href="{% url 'iss_tracker' %}" class="nav-link {% if request.resolver_match.url_name == 'iss_tracker' %}nav-active{% endif %}">[ ISS UPLINK ]</a>
+            <a href="{% url 'Mars_Fatty:games' %}" class="nav-link {% if request.resolver_match.url_name == 'Mars_Fatty:games' %}nav-active{% endif %}">[ GAMES ]</a>
+        </nav>
     </div>
 
-    <footer style="margin-top: 1.5rem; text-align: center; border-top: 1px solid var(--border-dim); padding-top: 1rem; width: 100%; max-width: 800px;">
-        <p style="font-size: 0.7rem; color: var(--text-dim); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px;">
-            astroSurf mission control // earth-to-mars relay
-        </p>
+    <!-- MAIN CONTENT -->
+    {% block content %}{% endblock %}
+
+    <!-- FOOTER -->
+    <footer>
+        <p>astroSurf mission control // earth-to-mars relay</p>
     </footer>
 
     {% block extra_js %}
@@ -439,10 +518,10 @@
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-GB', { hour12: false });
             const dateStr = now.toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
-            
+
             const timeElem = document.getElementById('current-time');
             const dateElem = document.getElementById('current-date');
-            
+
             if (timeElem) timeElem.textContent = timeStr;
             if (dateElem) dateElem.textContent = dateStr;
         }
@@ -451,7 +530,7 @@
         let launchName = "Unknown Launch";
 
         function fetchNextLaunch() {
-            // Using SpaceDevs API (ll.thespacedevs.com) to get the next upcoming orbital launch
+            // Using SpaceDevs API to get the next upcoming orbital launch
             fetch('https://lldev.thespacedevs.com/2.2.0/launch/upcoming/?limit=1')
                 .then(response => response.json())
                 .then(data => {
@@ -462,15 +541,16 @@
 
                         const timerElem = document.getElementById('launch-timer');
                         if(timerElem) {
-                            timerElem.title = launchName; // Show name on hover
+                            timerElem.title = launchName;
+                            timerElem.setAttribute('data-launch-name', launchName);
                         }
                     }
                 })
                 .catch(err => {
                     console.error("Failed to fetch next launch:", err);
-                    // Fallback target if API fails
+                    // Fallback if API fails
                     targetLaunchDate = new Date('2026-04-20T14:00:00Z').getTime();
-                    launchName = "Default Test Launch";
+                    launchName = "SpaceX Starship Flight 5";
                 });
         }
 
@@ -490,14 +570,13 @@
                 timerElem.textContent = "T-PLUS: " + Math.abs(Math.floor(distance / 1000)) + "s";
                 timerElem.style.color = "var(--critical)";
 
-                // If it's been more than an hour since launch, fetch the next one
                 if (Math.abs(distance) > 3600000) {
                     fetchNextLaunch();
                 }
                 return;
             }
 
-            timerElem.style.color = "var(--nominal)"; // Reset color
+            timerElem.style.color = "var(--nominal)";
 
             const days = Math.floor(distance / (1000 * 60 * 60 * 24));
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -506,15 +585,14 @@
 
             let timerStr = "T-";
             if (days > 0) timerStr += days + "d:";
-            timerStr += (hours < 10 ? "0" + hours : hours) + ":" + 
-                        (minutes < 10 ? "0" + minutes : minutes) + ":" + 
+            timerStr += (hours < 10 ? "0" + hours : hours) + ":" +
+                        (minutes < 10 ? "0" + minutes : minutes) + ":" +
                         (seconds < 10 ? "0" + seconds : seconds);
-            
+
             timerElem.textContent = timerStr;
 
-            // Periodically toggle display to show launch name instead of just hovering
+            // Show launch name periodically
             if(new Date().getSeconds() % 10 < 3) {
-                 // Show a truncated version of the name every 10 seconds for 3 seconds
                  let shortName = launchName.split('|')[0].trim();
                  if(shortName.length > 15) shortName = shortName.substring(0, 12) + "...";
                  timerElem.textContent = shortName;
@@ -522,11 +600,10 @@
             }
         }
 
-        // Initialize clock and timers
+        // Initialize
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Fetch real launch data immediately, then start timer
         fetchNextLaunch();
         setInterval(updateLaunchTimer, 1000);
 

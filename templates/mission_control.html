@@ -5,95 +5,388 @@
 {% block extra_style %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <style>
+    @keyframes scan-line {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
+    @keyframes blink {
+        0%, 49%, 100% { opacity: 1; }
+        50%, 99% { opacity: 0.3; }
+    }
+    @keyframes data-glitch {
+        0% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(-2px, -2px); }
+        60% { transform: translate(2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+        100% { transform: translate(0); }
+    }
+
     .mission-control-layout {
         display: grid;
-        grid-template-columns: 1fr; /* Single column layout */
+        grid-template-columns: 1fr;
         gap: 15px;
         width: 100%;
     }
+
     .grid-container {
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 1.6fr 1fr;
         gap: 15px;
     }
+
     .left-column { display: flex; flex-direction: column; gap: 15px; }
     .right-column { display: flex; flex-direction: column; gap: 15px; }
 
-    #mars-map {
-        height: 400px;
-        background-color: #1a1a1a;
+    .panel {
+        background: linear-gradient(135deg, rgba(10, 15, 22, 0.7) 0%, rgba(15, 20, 28, 0.7) 100%);
         border: 1px solid var(--border-dim);
-        border-radius: 4px;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.05), inset 0 0 20px rgba(255, 0, 255, 0.02);
+        transition: all 0.3s ease;
     }
-    .leaflet-container { background: #1a1a1a; }
+    .panel:hover { box-shadow: 0 0 30px rgba(0, 212, 255, 0.1), inset 0 0 20px rgba(255, 0, 255, 0.03); }
+    .panel h2 {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--accent-cyan);
+        margin: 12px 15px 0;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    #mars-map {
+        height: 280px;
+        background-color: #0a0a12;
+        border-radius: 4px;
+        position: relative;
+        margin: 12px;
+        box-shadow: inset 0 0 30px rgba(255, 0, 255, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+    }
+    #mars-map::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(0, 212, 255, 0.03) 50%, transparent 100%);
+        pointer-events: none;
+        border-radius: 4px;
+        animation: scan-line 4s linear infinite;
+        z-index: 1;
+    }
+    .leaflet-container { background: #0a0a12; border-radius: 4px; }
+    .leaflet-control-zoom { opacity: 0.6; }
+    .leaflet-marker-icon { filter: drop-shadow(0 0 2px rgba(0, 212, 255, 0.8)); }
+
+    .poi-modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+    }
+    .poi-modal.active { display: flex; }
+    .poi-modal-content {
+        background: linear-gradient(135deg, rgba(10, 15, 22, 0.95) 0%, rgba(15, 20, 28, 0.95) 100%);
+        border: 2px solid rgba(0, 212, 255, 0.5);
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        animation: slideUp 0.4s ease-out;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .poi-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .poi-modal-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--accent-cyan);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .poi-modal-close {
+        background: none;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        color: var(--accent-cyan);
+        font-size: 28px;
+        cursor: pointer;
+        padding: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+    .poi-modal-close:hover {
+        background: rgba(0, 212, 255, 0.1);
+        border-color: rgba(0, 212, 255, 0.6);
+    }
+    .poi-modal-body { display: grid; gap: 20px; }
+    .poi-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .poi-info-item {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 4px;
+        padding: 12px;
+    }
+    .poi-info-label {
+        font-size: 0.7rem;
+        color: var(--accent-cyan);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+    .poi-info-value {
+        font-size: 0.9rem;
+        color: var(--nominal);
+        font-weight: bold;
+    }
+    .poi-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 0.85rem;
+    }
+    .poi-interesting-fact {
+        background: linear-gradient(135deg, rgba(255, 200, 0, 0.1) 0%, rgba(255, 100, 0, 0.1) 100%);
+        border-left: 3px solid var(--warning);
+        padding: 12px;
+        border-radius: 4px;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 12px;
+    }
+    .status-grid .status-item {
+        background: linear-gradient(135deg, rgba(0, 30, 50, 0.8) 0%, rgba(10, 15, 22, 0.8) 100%);
+        border: 1px solid var(--border-dim);
+        padding: 10px 8px;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .status-grid .status-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+    }
+    .status-grid .status-item::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+        animation: scan-line 3s linear infinite;
+    }
+    .status-grid .status-value {
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: block;
+        margin-top: 6px;
+        position: relative;
+        z-index: 1;
+    }
+    .status-grid .status-label { position: relative; z-index: 1; }
+    .status-grid .status-nominal {
+        color: var(--nominal);
+        border-left: 3px solid var(--nominal);
+        box-shadow: inset 0 0 10px rgba(0, 200, 100, 0.1);
+    }
+    .status-grid .status-warning {
+        color: var(--warning);
+        border-left: 3px solid var(--warning);
+        box-shadow: inset 0 0 10px rgba(255, 150, 0, 0.1);
+        animation: blink 2s ease-in-out infinite;
+    }
+    .status-grid .status-critical {
+        color: var(--critical);
+        border-left: 3px solid var(--critical);
+        box-shadow: inset 0 0 10px rgba(255, 50, 50, 0.15);
+        animation: blink 1s ease-in-out infinite;
+    }
 
     .terminal {
-        height: 250px;
-        background: var(--bg-void);
+        height: 220px;
+        background: linear-gradient(135deg, rgba(0, 10, 20, 0.9) 0%, rgba(5, 10, 18, 0.9) 100%);
         border: 1px solid var(--border-dim);
         border-radius: 4px;
         font-family: var(--font-mono);
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         display: flex;
         flex-direction: column;
+        margin: 12px;
+        box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.05);
     }
     .terminal-output {
         flex-grow: 1;
         overflow-y: auto;
         padding: 10px;
         color: var(--text-secondary);
+        line-height: 1.5;
     }
+    .terminal-output div { animation: data-glitch 0.4s ease-out; }
     .terminal-input-line {
         display: flex;
-        padding: 5px 10px;
-        background: var(--bg-elevated);
+        padding: 8px 10px;
+        background: rgba(0, 212, 255, 0.05);
         border-top: 1px solid var(--border-dim);
     }
-    .terminal-prompt { color: var(--accent-cyan); margin-right: 8px; }
+    .terminal-prompt {
+        color: var(--accent-cyan);
+        margin-right: 6px;
+        flex-shrink: 0;
+        animation: blink 1.5s ease-in-out infinite;
+    }
     #terminal-input {
         background: none;
         border: none;
         color: var(--nominal);
         flex-grow: 1;
         font-family: var(--font-mono);
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
     }
-    #terminal-input:focus { outline: none; }
-
-    .status-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 8px;
-    }
-    .status-item {
-        background: rgba(10, 15, 22, 0.6);
-        border: 1px solid var(--border-dim);
-        padding: 10px;
-        text-align: center;
-        font-family: var(--font-mono);
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .status-value {
-        font-size: 1.2rem;
-        font-weight: bold;
-        display: block;
-        margin-top: 5px;
-    }
-    .status-nominal { color: var(--nominal); border-left: 3px solid var(--nominal); }
-    .status-warning { color: var(--warning); border-left: 3px solid var(--warning); }
-    .status-critical { color: var(--critical); border-left: 3px solid var(--critical); }
+    #terminal-input:focus { outline: none; color: #00ff88; }
 
     .mission-log-new {
-        height: 300px;
-        background: var(--bg-void);
+        height: 220px;
+        background: linear-gradient(135deg, rgba(0, 10, 20, 0.9) 0%, rgba(5, 10, 18, 0.9) 100%);
         border: 1px solid var(--border-dim);
         padding: 10px;
         overflow-y: auto;
         font-family: var(--font-mono);
-        font-size: 0.75rem;
+        font-size: 0.7rem;
+        line-height: 1.4;
+        margin: 12px;
+        box-shadow: inset 0 0 20px rgba(255, 140, 0, 0.03);
     }
+    .mission-log-new > div {
+        margin-bottom: 4px;
+        word-break: break-word;
+        animation: data-glitch 0.4s ease-out;
+    }
+
+    .learning-section {
+        background: linear-gradient(135deg, rgba(0, 30, 40, 0.6) 0%, rgba(10, 20, 28, 0.6) 100%);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        border-radius: 4px;
+        padding: 12px 15px;
+        margin: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .learning-section:hover {
+        background: linear-gradient(135deg, rgba(0, 40, 60, 0.8) 0%, rgba(10, 30, 40, 0.8) 100%);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        border-color: rgba(0, 212, 255, 0.6);
+    }
+    .learning-title {
+        color: var(--accent-cyan);
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+    }
+    .learning-desc {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+    .learning-progress {
+        height: 2px;
+        background: rgba(0, 212, 255, 0.2);
+        margin-top: 8px;
+        border-radius: 1px;
+        overflow: hidden;
+    }
+    .learning-progress-bar {
+        height: 100%;
+        background: var(--accent-cyan);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin: 12px;
+    }
+    .insight-card {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 4px;
+        padding: 8px;
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .insight-card:hover {
+        background: rgba(0, 212, 255, 0.1);
+        border-color: rgba(0, 212, 255, 0.4);
+    }
+    .insight-label {
+        color: var(--accent-cyan);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+    }
+    .insight-value {
+        font-size: 1rem;
+        font-weight: bold;
+        color: var(--nominal);
+    }
+
+    @media (max-width: 1200px) { .grid-container { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+        .status-grid { grid-template-columns: repeat(2, 1fr); }
+        .insights-grid { grid-template-columns: 1fr; }
+        .poi-info-grid { grid-template-columns: 1fr; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 212, 255, 0.05); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.5); }
 </style>
 {% endblock %}
 
@@ -109,14 +402,20 @@
                 <h2>[ SYSTEM_STATUS ]</h2>
                 <div class="status-grid" id="status-grid"></div>
             </div>
+            <div class="panel">
+                <h2>[ MISSION_INSIGHTS ]</h2>
+                <div class="insights-grid" id="insights-grid"></div>
+            </div>
         </div>
+
         <div class="right-column">
             <div class="panel">
                 <h2>[ COMMAND_TERMINAL ]</h2>
                 <div class="terminal">
                     <div class="terminal-output" id="terminal-output">
-                        <div>AstroSurf Command Interface v2.2</div>
-                        <div>Type 'help' for a list of commands.</div>
+                        <div>AstroSurf Command Interface v3.0</div>
+                        <div>[ LEARNING_MODE_ENABLED ]</div>
+                        <div>Type 'help' for commands or 'learn [topic]' to begin</div>
                     </div>
                     <div class="terminal-input-line">
                         <span class="terminal-prompt">></span>
@@ -128,6 +427,38 @@
                 <h2>[ MISSION_LOG ]</h2>
                 <div class="mission-log-new" id="mission-log"></div>
             </div>
+            <div class="panel">
+                <h2>[ LEARNING_PROGRESS ]</h2>
+                <div class="learning-section" onclick="startLearningPath('rovers')">
+                    <div class="learning-title">🤖 Mars Rovers 101</div>
+                    <div class="learning-desc">Learn about Curiosity & Perseverance rover systems, navigation, and discoveries</div>
+                    <div class="learning-progress"><div class="learning-progress-bar" id="progress-rovers" style="width: 35%"></div></div>
+                </div>
+                <div class="learning-section" onclick="startLearningPath('atmosphere')">
+                    <div class="learning-title">🌍 Mars Atmosphere</div>
+                    <div class="learning-desc">Explore the thin Martian atmosphere, weather patterns, and dust storms</div>
+                    <div class="learning-progress"><div class="learning-progress-bar" id="progress-atmosphere" style="width: 0%"></div></div>
+                </div>
+                <div class="learning-section" onclick="startLearningPath('geology')">
+                    <div class="learning-title">🪨 Martian Geology</div>
+                    <div class="learning-desc">Discover Mars' geological history, evidence of water, and sample analysis</div>
+                    <div class="learning-progress"><div class="learning-progress-bar" id="progress-geology" style="width: 20%"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="poi-modal" id="poiModal">
+    <div class="poi-modal-content">
+        <div class="poi-modal-header">
+            <h2 class="poi-modal-title" id="poiTitle">Location</h2>
+            <button class="poi-modal-close" onclick="closePOIModal()">&times;</button>
+        </div>
+        <div class="poi-modal-body">
+            <p class="poi-description" id="poiDescription">Loading...</p>
+            <div class="poi-info-grid" id="poiInfoGrid"></div>
+            <div class="poi-interesting-fact" id="poiInterestingFact"></div>
         </div>
     </div>
 </div>
@@ -137,120 +468,330 @@
 {{ block.super }}
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script>
-    // --- 1. Mars Map ---
-    const map = L.map('mars-map', {
-        center: [0, 0],
-        zoom: 2,
-        zoomControl: true,
-        maxBounds: [[-90, -180], [90, 180]]
+const poisData = {
+    'perseverance': {
+        name: 'Perseverance Rover',
+        location: 'Jezero Crater',
+        coordinates: [18.44, 77.45],
+        description: 'NASA\'s Perseverance rover is currently exploring Jezero Crater, searching for signs of ancient microbial life and collecting samples for future return to Earth. Equipped with advanced scientific instruments including the SAM drill and Mastcam-Z.',
+        facts: [
+            { label: 'Launch Date', value: 'July 30, 2020' },
+            { label: 'Landing Date', value: 'February 18, 2021' },
+            { label: 'Mass', value: '899 kg' },
+            { label: 'Wheels', value: '6 (aluminum)' }
+        ],
+        interesting: '💡 Perseverance is collecting rock samples in special tubes, which will eventually be retrieved by a future Mars Sample Return mission—the first samples of Martian rock ever brought to Earth!'
+    },
+    'curiosity': {
+        name: 'Curiosity Rover',
+        location: 'Gale Crater',
+        coordinates: [-4.59, 137.44],
+        description: 'Curiosity has been exploring Gale Crater since 2012, studying the geology and climate of Mars. It\'s mounted Mount Sharp (Aeolis Mons) to study how Mars transitioned from a warm, wet planet to a cold, dry desert.',
+        facts: [
+            { label: 'Launch Date', value: 'November 26, 2011' },
+            { label: 'Landing Date', value: 'August 6, 2012' },
+            { label: 'Mass', value: '899 kg' },
+            { label: 'Primary Mission', value: '2 Years (Extended)' }
+        ],
+        interesting: '💡 Curiosity uses a radioisotope thermoelectric generator (RTG) powered by plutonium-238 to generate electricity, allowing it to operate through Mars winters when solar power would be insufficient.'
+    },
+    'olympus': {
+        name: 'Olympus Mons',
+        location: 'Tharsis Region',
+        coordinates: [18.65, -133.8],
+        description: 'The largest volcano in the entire Solar System! Olympus Mons is a shield volcano with a base diameter of 600 km and stands 25 km above the surrounding plains. Its gentle slopes indicate eruptions of low-viscosity lava.',
+        facts: [
+            { label: 'Height', value: '25 km above datum' },
+            { label: 'Diameter', value: '600 km' },
+            { label: 'Volcano Type', value: 'Shield Volcano' },
+            { label: 'Slope Angle', value: '5°' }
+        ],
+        interesting: '💡 Despite being nearly 3 times the height of Mount Everest, the slopes of Olympus Mons are so gentle that if you stood on its surface, you wouldn\'t realize you were on a mountain!'
+    },
+    'valles': {
+        name: 'Valles Marineris',
+        location: 'Tharsis Region',
+        coordinates: [-13.5, -86],
+        description: 'The largest canyon system in the Solar System, stretching over 4,000 km across Mars\' surface. It\'s up to 7 km deep and was likely formed by tectonic uplift and erosion from ancient water flows.',
+        facts: [
+            { label: 'Length', value: '4,000+ km' },
+            { label: 'Width', value: '200 km (avg)' },
+            { label: 'Depth', value: '7 km' },
+            { label: 'Comparison', value: 'Grand Canyon × 10' }
+        ],
+        interesting: '💡 Valles Marineris is so massive that if you stood on one rim, you couldn\'t see the other side due to Mars\' curvature. It may contain deposits of water ice in its shadowed regions.'
+    },
+    'ares': {
+        name: 'Ares Vallis',
+        location: 'Xanthe Terra Region',
+        coordinates: [-18.5, -31.8],
+        description: 'An ancient river valley that shows clear evidence of having been carved by flowing water billions of years ago. NASA\'s Pathfinder mission landed here in 1997, proving that flowing water once shaped Mars\' surface.',
+        facts: [
+            { label: 'Width', value: '2-4 km' },
+            { label: 'Length', value: '1,500+ km' },
+            { label: 'Pathfinder Landing', value: '1997' },
+            { label: 'Flow Evidence', value: 'Ancient riverbeds' }
+        ],
+        interesting: '💡 The Pathfinder mission\'s discovery of water-worn rocks proved that Mars once had a hydrological cycle similar to Earth, suggesting conditions may have been habitable for microbial life.'
+    },
+    'mawrth': {
+        name: 'Mawrth Vallis',
+        location: 'Arabia Terra Region',
+        coordinates: [21.6, -9.6],
+        description: 'An ancient river valley containing some of the most diverse and colorful minerals on Mars, including clay minerals that indicate neutral pH water. Multiple lander sites have been proposed here.',
+        facts: [
+            { label: 'Width', value: '1-2 km' },
+            { label: 'Mineral Diversity', value: 'Very High' },
+            { label: 'Water Evidence', value: 'Phyllosilicates' },
+            { label: 'Habitable Potential', value: 'High' }
+        ],
+        interesting: '💡 The variety of clay minerals found here suggests different water compositions and temperatures over time, making it one of the best places to search for evidence of ancient microbial life.'
+    }
+};
+
+const map = L.map('mars-map', {
+    center: [0, 0],
+    zoom: 2,
+    zoomControl: true,
+    maxBounds: [[-90, -180], [90, 180]],
+    attributionControl: false,
+    preferCanvas: true
+});
+
+const tileOptions = {
+    attribution: 'NASA/USGS',
+    minZoom: 2,
+    maxZoom: 5,
+    noWrap: true,
+    crossOrigin: 'anonymous'
+};
+
+const marsLayer = L.tileLayer('https://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/viking_mdim21_global/{z}/{x}/{y}.png', tileOptions);
+marsLayer.addTo(map);
+
+setTimeout(() => {
+    if (!document.querySelector('.leaflet-tile-loaded')) {
+        const mapEl = document.getElementById('mars-map');
+        mapEl.innerHTML = '<div style="position:relative;z-index:2;text-align:center;font-size:0.85rem;">Mars map tiles loading...<br><small>(May be blocked on local servers)</small><br><br>Interactive POI markers are ready:<br>Try clicking in the map area or check the terminal!</div>';
+    }
+}, 3000);
+
+const roverIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSI1IiB5PSI1IiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIGZpbGw9IiMwMGQxZmYiIHJ4PSIyIi8+PC9zdmc+',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+});
+
+const landmarkIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cG9seWdvbiBwb2ludHM9IjEyLDIgMjIsMjIgMiwyyiIgZmlsbD0iI2ZmODAwMCIvPjwvc3ZnPg==',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+});
+
+for (const [key, poi] of Object.entries(poisData)) {
+    const icon = (key === 'perseverance' || key === 'curiosity') ? roverIcon : landmarkIcon;
+    const marker = L.marker(poi.coordinates, { icon }).addTo(map);
+    marker.on('click', () => {
+        openPOIModal(poi);
+        addLog(`[LOCATION] ${poi.name} selected`, 'NAVIGATE');
     });
+}
 
-    L.tileLayer('https://s3-eu-west-1.amazonaws.com/whereonmars.cartodb.net/viking_mdim21_global/{z}/{x}/{y}.png', {
-        attribution: 'NASA/USGS',
-        minZoom: 2,
-        maxZoom: 5,
-        noWrap: true,
-    }).addTo(map);
+function openPOIModal(poi) {
+    document.getElementById('poiTitle').textContent = poi.name;
+    document.getElementById('poiDescription').textContent = poi.description;
+    document.getElementById('poiInterestingFact').textContent = poi.interesting;
+    const infoGrid = document.getElementById('poiInfoGrid');
+    infoGrid.innerHTML = '';
+    poi.facts.forEach(fact => {
+        const item = document.createElement('div');
+        item.className = 'poi-info-item';
+        item.innerHTML = `<div class="poi-info-label">${fact.label}</div><div class="poi-info-value">${fact.value}</div>`;
+        infoGrid.appendChild(item);
+    });
+    document.getElementById('poiModal').classList.add('active');
+}
 
-    const sites = {
-        'Perseverance': L.marker([18.44, 77.45]).addTo(map).bindPopup('<b>Perseverance Rover</b><br>Jezero Crater'),
-        'Curiosity': L.marker([-4.59, 137.44]).addTo(map).bindPopup('<b>Curiosity Rover</b><br>Gale Crater'),
-        'Olympus Mons': L.marker([18.65, -133.8]).addTo(map).bindPopup('<b>Olympus Mons</b><br>Largest volcano in the solar system.'),
+function closePOIModal() {
+    document.getElementById('poiModal').classList.remove('active');
+}
+
+document.getElementById('poiModal').addEventListener('click', (e) => {
+    if (e.target.id === 'poiModal') closePOIModal();
+});
+
+setTimeout(() => map.invalidateSize(), 100);
+
+const statusGrid = document.getElementById('status-grid');
+let systems = {
+    'LIFE_SUPPORT': { value: 99.8, unit: '%', status: 'nominal', info: 'Oxygen, pressure, temperature regulation' },
+    'POWER': { value: 87.2, unit: '%', status: 'nominal', info: 'Solar panel efficiency and battery charge' },
+    'COMMS': { value: 99.9, unit: '%', status: 'nominal', info: 'Radio signal strength to Earth' },
+    'PROPULSION': { value: 100, unit: '%', status: 'nominal', info: 'Wheel motors and drive systems' },
+    'TEMP_CORE': { value: -15.2, unit: '°C', status: 'warning', info: 'Internal core temperature' },
+    'DRILL_STATUS': { value: 'IDLE', unit: '', status: 'nominal', info: 'Sample acquisition drill status' },
+};
+
+function renderStatus() {
+    statusGrid.innerHTML = '';
+    for (const [name, data] of Object.entries(systems)) {
+        const item = document.createElement('div');
+        item.className = `status-item status-${data.status}`;
+        item.onclick = () => {
+            addLog(`[SYSTEM] ${name}: ${data.value}${data.unit} - ${data.info}`, 'DIAGNOSTIC');
+            showInsight(name, data.info);
+        };
+        item.innerHTML = `
+            <div class="status-label">${name.replace(/_/g, ' ')}</div>
+            <span class="status-value">${data.value}${data.unit}</span>
+        `;
+        statusGrid.appendChild(item);
+    }
+}
+
+function showInsight(system, info) {
+    const insightEl = document.querySelector(`[data-system="${system}"]`);
+    if (insightEl) {
+        insightEl.style.borderColor = 'rgba(0, 212, 255, 0.8)';
+        setTimeout(() => insightEl.style.borderColor = 'rgba(0, 212, 255, 0.2)', 2000);
+    }
+}
+
+const insightsGrid = document.getElementById('insights-grid');
+const insights = [
+    { label: 'SURFACE TEMP', value: '-60°C', system: 'TEMP_CORE' },
+    { label: 'DISTANCE', value: '2.25 AU', system: 'COMMS' },
+    { label: 'DUST OPACITY', value: '4.2', system: 'POWER' },
+    { label: 'SOL_TIME', value: '24h 37m', system: 'LIFE_SUPPORT' },
+];
+
+insights.forEach(insight => {
+    const card = document.createElement('div');
+    card.className = 'insight-card';
+    card.setAttribute('data-system', insight.system);
+    card.innerHTML = `<div class="insight-label">${insight.label}</div><div class="insight-value">${insight.value}</div>`;
+    card.onclick = () => addLog(`[INSIGHT] ${insight.label}: ${insight.value}`, 'DATA');
+    insightsGrid.appendChild(card);
+});
+
+const termInput = document.getElementById('terminal-input');
+const termOutput = document.getElementById('terminal-output');
+
+const commands = {
+    'help': 'Commands: status, scan [system], learn [topic], rover, weather, history, clear, sites',
+    'status': () => JSON.stringify(Object.fromEntries(Object.entries(systems).map(([k, v]) => [k, `${v.value}${v.unit}`])), null, 2),
+    'scan': (system) => {
+        if (system && systems[system.toUpperCase()]) {
+            return `✓ Scanning ${system.toUpperCase()}... Status: ${systems[system.toUpperCase()].status.toUpperCase()}`;
+        }
+        return 'ERROR: Unknown system. Try: ' + Object.keys(systems).join(', ');
+    },
+    'learn': (topic) => {
+        const lessons = {
+            'rovers': 'Curiosity & Perseverance are solar-powered rovers that explore Mars surface, drill samples, and transmit data to Earth.',
+            'atmosphere': 'Mars atmosphere is 95% CO2, pressure ~600 Pa (0.6% of Earth), avg temp -60°C. Severe dust storms can occur.',
+            'geology': 'Evidence of ancient water suggests habitable conditions 3.8 billion years ago. Rocks contain clay minerals & hematite.',
+            'landing': 'Mars landers use parachutes, retro-rockets, and airbags. Curiosity used Sky Crane for precision landing.',
+        };
+        return lessons[topic] || 'Unknown topic. Try: rovers, atmosphere, geology, landing';
+    },
+    'sites': () => 'Available POIs: perseverance, curiosity, olympus, valles, ares, mawrth. Click on map markers for rich data!',
+    'rover': () => 'Perseverance: 899kg, Mastcam-Z, SAM drill, RAD dosimeter. Location: Jezero Crater. Launch: 2020, Landing: 2021.',
+    'weather': () => 'Temperature: -60°C, Pressure: 640 Pa, Wind: Light. No precipitation. Current dust opacity: Normal.',
+    'history': () => 'Mars exploration: Viking 1&2 (1976), Pathfinder (1997), Opportunity (2004-2018), Curiosity (2012-), Perseverance (2021-)',
+    'clear': () => { termOutput.innerHTML = ''; return 'Terminal cleared'; }
+};
+
+termInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        const input = termInput.value.trim();
+        if (!input) return;
+        const [command, ...args] = input.split(' ');
+        const outputLine = document.createElement('div');
+        outputLine.innerHTML = `<span class="terminal-prompt">></span> ${input}`;
+        termOutput.appendChild(outputLine);
+        if (commands[command]) {
+            const result = typeof commands[command] === 'function' ? commands[command](...args) : commands[command];
+            const resultLine = document.createElement('div');
+            resultLine.textContent = result;
+            termOutput.appendChild(resultLine);
+            addLog(`Command executed: ${command}`, 'TERMINAL');
+        } else if (command.length > 0) {
+            const errorLine = document.createElement('div');
+            errorLine.textContent = `ERROR: Unknown command '${command}'. Type 'help' for available commands.`;
+            termOutput.appendChild(errorLine);
+        }
+        termInput.value = '';
+        termOutput.scrollTop = termOutput.scrollHeight;
+    }
+});
+
+const missionLog = document.getElementById('mission-log');
+function addLog(message, type = 'INFO') {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-GB');
+    const logEntry = document.createElement('div');
+    const typeColor = type === 'TERMINAL' ? 'var(--accent-cyan)' :
+                     type === 'NAVIGATE' ? 'var(--warning)' :
+                     type === 'DIAGNOSTIC' ? 'var(--nominal)' : 'var(--accent-amber)';
+    logEntry.innerHTML = `<span style="color:${typeColor};">[${timeStr}]</span> [${type}] ${message}`;
+    missionLog.prepend(logEntry);
+}
+
+function startLearningPath(topic) {
+    const lessons = {
+        rovers: [
+            { q: 'What is the primary power source for Mars rovers?', a: 'Solar panels charge lithium-ion battery banks. Curiosity uses RTGs (radioisotope generators) as backup.' },
+            { q: 'How do rovers communicate with Earth?', a: 'Via UHF radio to Mars orbiters, which relay to Earth. Signal delay is 4-24 minutes each way!' },
+            { q: 'What is the Martian day length?', a: 'One sol = 24 hours 37 minutes. Rovers sync operations to this cycle.' },
+        ],
+        atmosphere: [
+            { q: 'Why is Mars sky colored red?', a: 'Iron oxide (rust) dust suspended in the CO2 atmosphere scatters light, creating a butterscotch hue.' },
+            { q: 'How thick is the Mars atmosphere?', a: '~600 Pa vs Earth\'s 101,325 Pa. About 0.6% as dense—too thin to breathe, but strong enough for dust storms.' },
+        ],
+        geology: [
+            { q: 'What evidence shows Mars had water?', a: 'Deltas, river channels, clay minerals (phyllosilicates), and hematite deposits indicate liquid water flowed 3.8 billion years ago.' },
+            { q: 'Why did Mars lose its atmosphere?', a: 'Mars is small with weak gravity. Solar wind stripped away the magnetic field-less atmosphere over billions of years.' },
+        ]
     };
-
-    // --- 2. System Status Grid ---
-    const statusGrid = document.getElementById('status-grid');
-    const systems = {
-        'LIFE_SUPPORT': { value: 99.8, unit: '%', status: 'nominal' },
-        'POWER': { value: 87.2, unit: '%', status: 'nominal' },
-        'COMMS': { value: 99.9, unit: '%', status: 'nominal' },
-        'PROPULSION': { value: 100, unit: '%', status: 'nominal' },
-        'TEMP_CORE': { value: -15.2, unit: '°C', status: 'warning' },
-        'DRILL_STATUS': { value: 'IDLE', unit: '', status: 'nominal' },
-    };
-
-    function renderStatus() {
-        statusGrid.innerHTML = '';
-        for (const [name, data] of Object.entries(systems)) {
-            const item = document.createElement('div');
-            item.className = `status-item status-${data.status}`;
-            item.innerHTML = `
-                ${name.replace('_', ' ')}
-                <span class="status-value">${data.value}${data.unit}</span>
-            `;
-            statusGrid.appendChild(item);
+    const lesson = lessons[topic]?.[0];
+    if (lesson) {
+        addLog(`[LESSON] ${lesson.q}`, 'LEARNING');
+        setTimeout(() => addLog(`[ANSWER] ${lesson.a}`, 'LEARNING'), 500);
+        const progressEl = document.getElementById(`progress-${topic}`);
+        if (progressEl) {
+            const newWidth = Math.min(100, parseInt(progressEl.style.width) + 15);
+            progressEl.style.width = newWidth + '%';
         }
     }
+}
 
-    // --- 3. Command Terminal ---
-    const termInput = document.getElementById('terminal-input');
-    const termOutput = document.getElementById('terminal-output');
-    const commands = {
-        'help': 'Available commands: help, status, scan [system], clear',
-        'status': () => JSON.stringify(systems, null, 2),
-        'scan': (system) => {
-            if (system && systems[system.toUpperCase()]) {
-                return `Scanning ${system.toUpperCase()}... Done. Status: ${systems[system.toUpperCase()].status}`;
-            }
-            return 'ERROR: Unknown system. Try: ' + Object.keys(systems).join(', ');
-        },
-        'clear': () => { termOutput.innerHTML = ''; return 'Terminal cleared.'; }
-    };
-
-    termInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const input = termInput.value.trim();
-            const [command, ...args] = input.split(' ');
-
-            const outputLine = document.createElement('div');
-            outputLine.innerHTML = `<span class="terminal-prompt">></span> ${input}`;
-            termOutput.appendChild(outputLine);
-
-            if (commands[command]) {
-                const result = typeof commands[command] === 'function' ? commands[command](...args) : commands[command];
-                const resultLine = document.createElement('div');
-                resultLine.textContent = result;
-                termOutput.appendChild(resultLine);
-            } else {
-                const errorLine = document.createElement('div');
-                errorLine.textContent = `ERROR: Command not found: ${command}`;
-                termOutput.appendChild(errorLine);
-            }
-
-            termInput.value = '';
-            termOutput.scrollTop = termOutput.scrollHeight;
+document.addEventListener('DOMContentLoaded', () => {
+    renderStatus();
+    addLog('Mission Control Initialized', 'SYSTEM');
+    addLog('All systems online. Ready for operations.', 'SYSTEM');
+    addLog('Click on POIs to view detailed information!', 'SYSTEM');
+    setInterval(() => {
+        systems.POWER.value = (85 + Math.random() * 5).toFixed(1);
+        systems.POWER.status = systems.POWER.value < 86 ? 'warning' : 'nominal';
+        if (Math.random() > 0.95) {
+            systems.COMMS.status = Math.random() > 0.7 ? 'nominal' : 'warning';
+            addLog('Signal fluctuation detected. Realigning antenna.', 'EVENT');
         }
-    });
-
-    // --- 4. Mission Log ---
-    const missionLog = document.getElementById('mission-log');
-    function addLog(message, type = 'INFO') {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-GB');
-        const logEntry = document.createElement('div');
-        logEntry.innerHTML = `<span style="color:var(--accent-amber)">[${timeStr}]</span> [${type}] ${message}`;
-        missionLog.prepend(logEntry);
-    }
-
-    // --- 5. Initialization and Live Updates ---
-    document.addEventListener('DOMContentLoaded', () => {
         renderStatus();
-        addLog('Mission Control Initialized.', 'SYSTEM');
-
-        // Simulate live data changes
-        setInterval(() => {
-            systems.POWER.value = (85 + Math.random() * 5).toFixed(1);
-            if (systems.POWER.value < 86) systems.POWER.status = 'warning';
-            else systems.POWER.status = 'nominal';
-
-            if (Math.random() > 0.9) {
-                addLog('Minor solar flare detected. Power grid fluctuating.', 'EVENT');
-                systems.COMMS.status = 'warning';
-            } else {
-                systems.COMMS.status = 'nominal';
-            }
-            renderStatus();
-        }, 3000);
-    });
+    }, 4000);
+    const events = [
+        'Dust storm approaching from NW quadrant',
+        'Drill sample analysis complete',
+        'Solar panel efficiency nominal',
+        'Wheel sensors reporting normal wear',
+        'Temperature stabilizing in core',
+    ];
+    setInterval(() => {
+        if (Math.random() > 0.7) {
+            addLog(events[Math.floor(Math.random() * events.length)], 'EVENT');
+        }
+    }, 8000);
+});
 </script>
 {% endblock %}
