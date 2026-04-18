@@ -22,7 +22,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-lltl@24mn=pg_k@nk=ga$va4j(5na*zo!jfqn@84$x1wdy#aqo'
+import os
+
+if config.is_valid_platform():
+    try:
+        SECRET_KEY = config.projectEntropy
+    except Exception:
+        SECRET_KEY = os.environ.get(
+            'DJANGO_SECRET_KEY',
+            'django-insecure-build-placeholder'
+        )
+else:
+    SECRET_KEY = os.environ.get(
+        'DJANGO_SECRET_KEY',
+        'django-insecure-build-placeholder'
+    )
 
 # NASA API Key for APOD
 # Get your key from https://api.nasa.gov/
